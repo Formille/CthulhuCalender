@@ -1,4 +1,9 @@
 {
-  "cleanUrls": true,
-  "framework": "jekyll"
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "cleanUrls": true
 }
