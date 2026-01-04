@@ -986,23 +986,15 @@ async function syncWithServer(slotId, direction = 'both') {
 }
 
 /**
- * 자동 저장 (클라이언트 저장소에 즉시 저장, 서버는 백그라운드 동기화)
+ * 자동 저장 (클라이언트 저장소에만 저장)
  * @param {Object} gameData - 게임 데이터
  * @param {string} slotId - 슬롯 ID
  * @returns {Promise<boolean>} 성공 여부
  */
 async function autoSave(gameData, slotId) {
     try {
-        // 클라이언트 저장소에 즉시 저장
+        // 클라이언트 저장소에만 저장
         const success = await updateSaveSlot(slotId, gameData);
-        
-        if (success) {
-            // 백그라운드에서 서버 동기화 시도 (실패해도 무시)
-            syncWithServer(slotId, 'upload').catch(() => {
-                // 오프라인이면 무시 (조용히 실패)
-            });
-        }
-
         return success;
     } catch (error) {
         console.error('자동 저장 실패:', error);

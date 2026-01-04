@@ -5,7 +5,6 @@ from datetime import datetime
 import random
 import json
 import os
-from pathlib import Path
 from app.models.game_models import (
     GameState, EncounterTarget, DiceRoll, DailyStoryContext, ActionType
 )
@@ -15,10 +14,6 @@ from app.services import llm_service
 from app.services import storage_service
 
 router = APIRouter(prefix="/api/game", tags=["game"])
-
-# 슬롯 저장 디렉토리
-SLOTS_DIR = Path(__file__).parent.parent.parent / "data" / "slots"
-SLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class StartGameRequest(BaseModel):
@@ -53,11 +48,6 @@ class MonthStartRequest(BaseModel):
 class MonthConclusionRequest(BaseModel):
     month: str  # "January"
     game_data: Optional[Dict[str, Any]] = None  # 클라이언트에서 게임 데이터 전달
-
-
-class SaveSlotRequest(BaseModel):
-    slot_id: str
-    game_data: Dict[str, Any]
 
 
 @router.post("/start")
@@ -452,8 +442,6 @@ async def process_encounter(request: EncounterRequest):
     if is_sunday_boss:
         # 일요일 조우인 경우, target_date를 기반으로 조우 데이터에서 찾기
         try:
-            import json
-            import os
             game_data_path = os.path.join("data", "daily_encounter_data_1.json")
             if os.path.exists(game_data_path):
                 with open(game_data_path, "r", encoding="utf-8") as f:
@@ -889,9 +877,6 @@ async def process_month_conclusion(request: MonthConclusionRequest):
 @router.get("/encounter-data")
 async def get_encounter_data():
     """daily_encounter_data.json 파일을 읽어서 조우 데이터 반환"""
-    import json
-    import os
-    
     game_data_path = os.path.join("data", "daily_encounter_data.json")
     
     try:
@@ -905,116 +890,4 @@ async def get_encounter_data():
         raise HTTPException(status_code=404, detail="daily_encounter_data.json 파일을 찾을 수 없습니다.")
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="daily_encounter_data.json 파일 파싱 오류")
-
-
-@router.post("/save-slot")
-async def save_slot_to_server(request: SaveSlotRequest):
-    """클라이언트에서 서버로 슬롯 저장 (선택적 백업)"""
-    slot_id = request.slot_id
-    game_data = request.game_data
-    
-    # 슬롯별 파일로 저장
-    slot_file = SLOTS_DIR / f"save_slot_{slot_id}.json"
-    
-    try:
-        # 마지막 플레이 시간 업데이트
-        if "save_file_info" in game_data:
-            game_data["save_file_info"]["last_played"] = datetime.now().isoformat()
-        
-        with open(slot_file, "w", encoding="utf-8") as f:
-            json.dump(game_data, f, ensure_ascii=False, indent=2)
-        
-        return {
-            "success": True,
-            "slot_id": slot_id,
-            "message": "슬롯이 서버에 저장되었습니다."
-        }
-    except IOError as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 저장 실패: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 저장 중 오류 발생: {str(e)}")
-
-
-@router.get("/load-slot/{slot_id}")
-async def load_slot_from_server(slot_id: str):
-    """서버에서 슬롯 로드 (선택적 복원)"""
-    slot_file = SLOTS_DIR / f"save_slot_{slot_id}.json"
-    
-    if not slot_file.exists():
-        raise HTTPException(status_code=404, detail="서버에 해당 슬롯을 찾을 수 없습니다.")
-    
-    try:
-        with open(slot_file, "r", encoding="utf-8") as f:
-            game_data = json.load(f)
-        
-        return {
-            "success": True,
-            "slot_id": slot_id,
-            "game_data": game_data
-        }
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 파일 파싱 오류: {str(e)}")
-    except IOError as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 로드 실패: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 로드 중 오류 발생: {str(e)}")
-
-
-@router.delete("/delete-slot/{slot_id}")
-async def delete_slot_from_server(slot_id: str):
-    """서버에서 슬롯 삭제"""
-    slot_file = SLOTS_DIR / f"save_slot_{slot_id}.json"
-    
-    if not slot_file.exists():
-        raise HTTPException(status_code=404, detail="서버에 해당 슬롯을 찾을 수 없습니다.")
-    
-    try:
-        slot_file.unlink()
-        return {
-            "success": True,
-            "slot_id": slot_id,
-            "message": "슬롯이 서버에서 삭제되었습니다."
-        }
-    except IOError as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 삭제 실패: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 삭제 중 오류 발생: {str(e)}")
-
-
-@router.get("/list-slots")
-async def list_slots_from_server():
-    """서버에 저장된 모든 슬롯 목록 조회"""
-    try:
-        slots = []
-        for slot_file in SLOTS_DIR.glob("save_slot_*.json"):
-            slot_id = slot_file.stem.replace("save_slot_", "")
-            try:
-                with open(slot_file, "r", encoding="utf-8") as f:
-                    game_data = json.load(f)
-                
-                # 메타데이터만 추출
-                save_info = game_data.get("save_file_info", {})
-                metadata = {
-                    "slot_id": slot_id,
-                    "player_name": save_info.get("player_name", "Unknown"),
-                    "campaign_year": save_info.get("campaign_year", 1925),
-                    "last_played": save_info.get("last_played", ""),
-                    "file_size": slot_file.stat().st_size
-                }
-                slots.append(metadata)
-            except Exception as e:
-                # 개별 파일 오류는 무시하고 계속 진행
-                print(f"슬롯 {slot_id} 로드 실패: {e}")
-                continue
-        
-        # 마지막 플레이 시간 기준 정렬
-        slots.sort(key=lambda x: x.get("last_played", ""), reverse=True)
-        
-        return {
-            "success": True,
-            "slots": slots,
-            "count": len(slots)
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"슬롯 목록 조회 실패: {str(e)}")
 
