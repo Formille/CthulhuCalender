@@ -127,6 +127,7 @@ const LandingComponent = {
                         
                         // 상태 업데이트 후 일기장으로 이동
                         await window.AppState.loadGameState();
+                        loading.classList.remove('active');
                         window.Router.navigate('diary');
                     } catch (saveError) {
                         if (window.DebugLogger) {

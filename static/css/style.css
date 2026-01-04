@@ -937,10 +937,15 @@ h1 {
 }
 
 .loading {
+    display: none;
     text-align: center;
     padding: 20px;
     color: #d4af37;
     font-style: italic;
+}
+
+.loading.active {
+    display: block;
 }
 
 .error {
