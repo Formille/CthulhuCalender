@@ -1,4 +1,8 @@
-const API_BASE = '';
+// API_BASE 전역 변수 선언
+if (typeof window.API_BASE === 'undefined') {
+    window.API_BASE = '';
+}
+const API_BASE = window.API_BASE;
 
 // 게임 상태
 let gameState = null;
@@ -12,10 +16,21 @@ function renderMarkdown(markdownText) {
     try {
         // 이스케이프된 따옴표를 일반 따옴표로 변환 (JSON에서 온 경우)
         let processedText = markdownText.replace(/\\"/g, '"');
+        processedText = processedText.replace(/\\'/g, "'");
         
-        // 따옴표가 포함된 마크다운 패턴을 먼저 처리
-        // *"텍스트"* 패턴을 *텍스트*로 변환 (따옴표 제거)
-        processedText = processedText.replace(/\*"([^"]+)"\*/g, '*$1*');
+        // 기울임 패턴을 먼저 처리 (marked.js보다 먼저 처리하여 확실하게 변환)
+        // **텍스트** 패턴은 나중에 처리하기 위해 임시로 보호
+        processedText = processedText.replace(/\*\*/g, '___DOUBLE_STAR___');
+        
+        // *"텍스트"* 패턴 처리 (큰따옴표 포함)
+        processedText = processedText.replace(/\*"([^"]+)"\*/g, '<em>$1</em>');
+        // *'텍스트'* 패턴 처리 (작은따옴표 포함, 중간에 작은따옴표가 있어도 처리)
+        processedText = processedText.replace(/\*'(.+?)'\*/g, '<em>$1</em>');
+        // 일반 *텍스트* 패턴 처리 (공백이나 문장 부호로 구분된 경우)
+        processedText = processedText.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+        
+        // **텍스트** 패턴 복원 및 굵게 처리
+        processedText = processedText.replace(/___DOUBLE_STAR___(.+?)___DOUBLE_STAR___/g, '<strong>$1</strong>');
         
         // marked.js를 사용하여 마크다운을 HTML로 변환
         if (typeof marked !== 'undefined') {
@@ -28,20 +43,23 @@ function renderMarkdown(markdownText) {
             return html;
         } else {
             // marked.js가 로드되지 않은 경우 기본 변환
-            return processedText
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>')
-                .replace(/\n/g, '<br>');
+            return processedText.replace(/\n/g, '<br>');
         }
     } catch (error) {
         console.error('마크다운 변환 오류:', error);
         // 오류 발생 시 기본 변환 시도
         let fallbackText = markdownText.replace(/\\"/g, '"');
-        return fallbackText
-            .replace(/\*"([^"]+)"\*/g, '<em>$1</em>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>')
-            .replace(/\n/g, '<br>');
+        fallbackText = fallbackText.replace(/\\'/g, "'");
+        // **텍스트** 패턴 보호
+        fallbackText = fallbackText.replace(/\*\*/g, '___DOUBLE_STAR___');
+        // 기울임 패턴 처리
+        fallbackText = fallbackText.replace(/\*"([^"]+)"\*/g, '<em>$1</em>');
+        fallbackText = fallbackText.replace(/\*'(.+?)'\*/g, '<em>$1</em>');
+        fallbackText = fallbackText.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+        // 굵게 처리
+        fallbackText = fallbackText.replace(/___DOUBLE_STAR___(.+?)___DOUBLE_STAR___/g, '<strong>$1</strong>');
+        // 줄바꿈 처리
+        return fallbackText.replace(/\n/g, '<br>');
     }
 }
 
@@ -583,88 +601,190 @@ async function initializeGreenDiceIcons() {
     });
 }
 
-// 게임 상태 로드
+// 게임 상태 로드 (클라이언트 저장소에서)
 async function loadGameState() {
+    const startTime = Date.now();
+    if (window.DebugLogger) {
+        window.DebugLogger.logFunctionEntry('loadGameState');
+    }
+    
     try {
-        const response = await fetch(`${API_BASE}/api/game/state`);
-        const data = await response.json();
+        // 클라이언트 저장소에서 활성 슬롯 로드
+        if (typeof window.StorageModule === 'undefined') {
+            if (window.DebugLogger) window.DebugLogger.warn('StorageModule이 로드되지 않았습니다.');
+            console.warn('StorageModule이 로드되지 않았습니다.');
+            return;
+        }
+
+        await window.StorageModule.initDB();
+        const activeSlotId = await window.StorageModule.getActiveSlot();
         
-        if (data.success) {
-            console.log('서버에서 로드한 게임 상태:', data.game_state);
-            gameState = data.game_state;
+        if (!activeSlotId) {
+            if (window.DebugLogger) window.DebugLogger.debug('활성 슬롯이 없습니다.');
+            console.log('활성 슬롯이 없습니다.');
+            return;
+        }
+
+        const gameData = await window.StorageModule.getSaveSlot(activeSlotId);
+        
+        if (gameData) {
+            // 게임 데이터에서 상태 추출
+            const oldGameState = gameState ? JSON.parse(JSON.stringify(gameState)) : null;
+            gameState = gameData.current_state || {};
             currentDate = gameState.today_date;
+            
+            if (window.DebugLogger) {
+                window.DebugLogger.info('게임 상태 로드 완료', {
+                    activeSlotId,
+                    todayDate: currentDate,
+                    madnessLevel: gameState.madness_tracker?.current_level,
+                    weeklySuccess: gameState.weekly_progress?.success_count
+                });
+                
+                // 상태 변경 감지
+                if (oldGameState && oldGameState.today_date !== gameState.today_date) {
+                    window.DebugLogger.info('게임 날짜 변경', {
+                        old: oldGameState.today_date,
+                        new: gameState.today_date
+                    });
+                }
+                if (oldGameState && oldGameState.madness_tracker?.current_level !== gameState.madness_tracker?.current_level) {
+                    window.DebugLogger.info('광기 수치 변경', {
+                        old: oldGameState.madness_tracker?.current_level,
+                        new: gameState.madness_tracker?.current_level
+                    });
+                }
+            }
             
             // subtitle 업데이트
             const subtitle = document.querySelector('.subtitle');
             if (subtitle) {
-                const campaignYear = data.campaign_year || 1926;
+                const campaignYear = gameData.save_file_info?.campaign_year || 1925;
                 subtitle.textContent = `${campaignYear}년 아컴의 그림자`;
-            }
-            
-            // 완료된 날짜 목록 가져오기
-            const completedDays = gameState.weekly_progress?.completed_days_in_week || [];
-            if (completedDays.length > 0) {
-                // 마지막 완료된 날짜의 결과를 가져와서 제한 적용
-                // (실제로는 서버에서 마지막 조우 결과를 가져와야 하지만, 
-                //  여기서는 간단히 완료된 날짜가 있으면 제한을 적용하지 않음)
-                // 주의: 실제 구현에서는 서버에서 마지막 조우 결과를 가져와야 함
             }
             
             updateUI();
         }
     } catch (error) {
+        if (window.DebugLogger) window.DebugLogger.error('게임 상태 로드 실패', error);
         console.error('게임 상태 로드 실패:', error);
         // 에러 발생 시 기본값 설정
         const subtitle = document.querySelector('.subtitle');
         if (subtitle) {
-            subtitle.textContent = '1926년 아컴의 그림자';
+            subtitle.textContent = '1925년 아컴의 그림자';
+        }
+    } finally {
+        if (window.DebugLogger) {
+            window.DebugLogger.logFunctionExit('loadGameState', null, startTime);
         }
     }
 }
 
-// 조우 데이터 로드
+// 조우 데이터 로드 (캐시 우선)
 async function loadEncounterData() {
+    const startTime = Date.now();
+    if (window.DebugLogger) {
+        window.DebugLogger.logFunctionEntry('loadEncounterData');
+    }
+    
     try {
-        const response = await fetch(`${API_BASE}/api/game/encounter-data`);
-        const data = await response.json();
-        
-        if (data.success) {
-            encounterData = data.data;
+        // EncounterCache 모듈 사용 (캐시 우선, 없으면 서버에서 가져와서 캐싱)
+        if (typeof window.EncounterCache !== 'undefined') {
+            if (window.DebugLogger) window.DebugLogger.debug('EncounterCache 모듈을 사용하여 조우 데이터 로드');
+            encounterData = await window.EncounterCache.load();
+            if (window.DebugLogger) window.DebugLogger.info('조우 데이터 로드 완료 (캐시)', { encounterCount: encounterData?.encounters ? Object.keys(encounterData.encounters).length : 0 });
+        } else {
+            // 폴백: 직접 서버에서 가져오기
+            if (window.DebugLogger) window.DebugLogger.logAPIRequest('GET', `${API_BASE}/api/game/encounter-data`);
+            const requestStartTime = Date.now();
+            const response = await fetch(`${API_BASE}/api/game/encounter-data`);
+            const data = await response.json();
+            const requestDuration = Date.now() - requestStartTime;
+            
+            if (window.DebugLogger) window.DebugLogger.logAPIResponse('GET', `${API_BASE}/api/game/encounter-data`, data, requestDuration);
+            
+            if (data.success) {
+                encounterData = data.data;
+                if (window.DebugLogger) window.DebugLogger.info('조우 데이터 로드 완료 (서버)', { encounterCount: encounterData?.encounters ? Object.keys(encounterData.encounters).length : 0 });
+            }
         }
     } catch (error) {
+        if (window.DebugLogger) window.DebugLogger.error('조우 데이터 로드 실패', error);
         console.error('조우 데이터 로드 실패:', error);
+        // 오프라인 모드에서는 캐시된 데이터 사용 시도
+        if (typeof window.EncounterCache !== 'undefined') {
+            try {
+                const cacheStatus = await window.EncounterCache.getCacheStatus();
+                if (cacheStatus.exists) {
+                    if (window.DebugLogger) window.DebugLogger.warn('오프라인 모드: 캐시된 조우 데이터 사용');
+                    console.log('오프라인 모드: 캐시된 조우 데이터 사용');
+                    encounterData = await window.EncounterCache.load();
+                }
+            } catch (cacheError) {
+                if (window.DebugLogger) window.DebugLogger.error('캐시 로드도 실패', cacheError);
+                console.error('캐시 로드도 실패:', cacheError);
+            }
+        }
+    } finally {
+        if (window.DebugLogger) {
+            window.DebugLogger.logFunctionExit('loadEncounterData', null, startTime);
+        }
     }
 }
 
-// 게임 시작 확인
+// 게임 시작 확인 (클라이언트 저장소에서)
 async function checkGameStart() {
+    const startTime = Date.now();
+    if (window.DebugLogger) {
+        window.DebugLogger.logFunctionEntry('checkGameStart');
+    }
+    
     const startSection = document.getElementById('start-section');
     const prologueSection = document.getElementById('prologue-section');
     const gameSection = document.getElementById('game-section');
     
-    // 기존 게임이 있는지 확인
+    // 클라이언트 저장소에서 기존 게임 확인
     try {
-        const stateResponse = await fetch(`${API_BASE}/api/game/state`);
-        const stateData = await stateResponse.json();
-        
-        if (stateData.success && stateData.game_state) {
-            // 이미 게임이 시작된 경우
-            // subtitle 업데이트
-            const subtitle = document.querySelector('.subtitle');
-            if (subtitle && stateData.campaign_year) {
-                subtitle.textContent = `${stateData.campaign_year}년 아컴의 그림자`;
-            }
-            
-            startSection.style.display = 'none';
-            prologueSection.style.display = 'none';
-            gameSection.style.display = 'block';
-            initializeMonthCalendar();
-            await initializeWeekCalendar();
-            // 주사위 값에 따라 초기 업데이트
-            updateWeekCalendarByDiceValues();
+        if (typeof window.StorageModule === 'undefined') {
+            if (window.DebugLogger) window.DebugLogger.warn('StorageModule이 로드되지 않았습니다.');
+            console.warn('StorageModule이 로드되지 않았습니다.');
             return;
         }
+
+        await window.StorageModule.initDB();
+        const activeSlotId = await window.StorageModule.getActiveSlot();
+        
+        if (activeSlotId) {
+            if (window.DebugLogger) window.DebugLogger.debug('활성 슬롯 발견', { activeSlotId });
+            const gameData = await window.StorageModule.getSaveSlot(activeSlotId);
+            
+            if (gameData && gameData.current_state) {
+                // 이미 게임이 시작된 경우
+                if (window.DebugLogger) window.DebugLogger.info('기존 게임 발견, 게임 섹션 표시');
+                gameState = gameData.current_state;
+                currentDate = gameState.today_date;
+                
+                // subtitle 업데이트
+                const subtitle = document.querySelector('.subtitle');
+                if (subtitle) {
+                    const campaignYear = gameData.save_file_info?.campaign_year || 1925;
+                    subtitle.textContent = `${campaignYear}년 아컴의 그림자`;
+                }
+                
+                startSection.style.display = 'none';
+                prologueSection.style.display = 'none';
+                gameSection.style.display = 'block';
+                initializeMonthCalendar();
+                await initializeWeekCalendar();
+                // 주사위 값에 따라 초기 업데이트
+                updateWeekCalendarByDiceValues();
+                return;
+            }
+        } else {
+            if (window.DebugLogger) window.DebugLogger.debug('활성 슬롯 없음, 새 게임 시작 필요');
+        }
     } catch (error) {
+        if (window.DebugLogger) window.DebugLogger.error('게임 상태 확인 실패', error);
         console.error('게임 상태 확인 실패:', error);
     }
     
@@ -686,7 +806,14 @@ async function checkGameStart() {
             
             const data = await response.json();
             
-            if (data.success && data.prologue) {
+            if (data.success && data.prologue && data.game_data) {
+                // 클라이언트 저장소에 게임 데이터 저장
+                if (typeof window.StorageModule !== 'undefined') {
+                    await window.StorageModule.initDB();
+                    const slotId = await window.StorageModule.createSaveSlot(data.game_data);
+                    console.log('게임 데이터 저장 완료:', slotId);
+                }
+                
                 // subtitle 업데이트
                 const subtitle = document.querySelector('.subtitle');
                 if (subtitle && data.campaign_year) {
@@ -715,25 +842,45 @@ async function checkGameStart() {
 
 // UI 업데이트
 function updateUI() {
+    if (window.DebugLogger) {
+        window.DebugLogger.logFunctionEntry('updateUI');
+    }
+    
     if (!gameState) {
+        if (window.DebugLogger) window.DebugLogger.warn('updateUI: gameState가 없습니다.');
         console.warn('updateUI: gameState가 없습니다.');
         return;
     }
     
     const madnessLevel = gameState.madness_tracker?.current_level || 0;
+    const weeklySuccess = gameState.weekly_progress?.success_count || 0;
+    const todayDate = gameState.today_date || '1926-01-01';
+    
+    if (window.DebugLogger) {
+        window.DebugLogger.debug('UI 업데이트', {
+            todayDate,
+            madnessLevel,
+            weeklySuccess
+        });
+    }
+    
     console.log('updateUI: 광기 수치 업데이트', {
         gameState,
         madness_tracker: gameState.madness_tracker,
         current_level: madnessLevel
     });
     
-    document.getElementById('current-date').textContent = gameState.today_date || '1926-01-01';
+    document.getElementById('current-date').textContent = todayDate;
     document.getElementById('madness-level').textContent = madnessLevel;
-    document.getElementById('weekly-success').textContent = gameState.weekly_progress?.success_count || 0;
+    document.getElementById('weekly-success').textContent = weeklySuccess;
     
     // 광기 게이지 업데이트 (최대 10으로 가정)
     const madnessPercent = Math.min((madnessLevel / 10) * 100, 100);
     document.getElementById('madness-fill').style.width = `${madnessPercent}%`;
+    
+    if (window.DebugLogger) {
+        window.DebugLogger.logFunctionExit('updateUI');
+    }
 }
 
 // 월간 달력 초기화
@@ -765,8 +912,25 @@ async function initializeMonthCalendar() {
     let completedDates = new Set();
     let madnessInfo = new Map(); // 날짜별 광기 정보 저장
     try {
+        // IndexedDB에서 게임 데이터 가져오기
+        let gameData = null;
+        if (typeof window.StorageModule !== 'undefined') {
+            await window.StorageModule.initDB();
+            const activeSlotId = await window.StorageModule.getActiveSlot();
+            if (activeSlotId) {
+                gameData = await window.StorageModule.getSaveSlot(activeSlotId);
+            }
+        }
         
-        const monthResponse = await fetch(`${API_BASE}/api/narrative/month/${currentMonthName}`);
+        const monthResponse = await fetch(`${API_BASE}/api/narrative/month/${currentMonthName}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                game_data: gameData
+            })
+        });
         const monthData = await monthResponse.json();
         if (monthData.success && monthData.entries) {
             monthData.entries.forEach(entry => {
@@ -962,13 +1126,31 @@ async function initializeWeekCalendar() {
     // 성공한 날짜 목록 가져오기
     let completedDates = new Set();
     try {
+        // IndexedDB에서 게임 데이터 가져오기
+        let gameData = null;
+        if (typeof window.StorageModule !== 'undefined') {
+            await window.StorageModule.initDB();
+            const activeSlotId = await window.StorageModule.getActiveSlot();
+            if (activeSlotId) {
+                gameData = await window.StorageModule.getSaveSlot(activeSlotId);
+            }
+        }
+        
         // 현재 월 이름 가져오기
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
                            'July', 'August', 'September', 'October', 'November', 'December'];
         const currentMonthName = monthNames[currentMonth];
         
         // 현재 월의 일기 확인
-        const monthResponse = await fetch(`${API_BASE}/api/narrative/month/${currentMonthName}`);
+        const monthResponse = await fetch(`${API_BASE}/api/narrative/month/${currentMonthName}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                game_data: gameData
+            })
+        });
         const monthData = await monthResponse.json();
         if (monthData.success && monthData.entries) {
             monthData.entries.forEach(entry => {
@@ -1478,6 +1660,11 @@ document.getElementById('roll-dice-btn')?.addEventListener('click', async () => 
 
 // 조우 처리
 async function processEncounter() {
+    const startTime = Date.now();
+    if (window.DebugLogger) {
+        window.DebugLogger.logFunctionEntry('processEncounter');
+    }
+    
     const targetDateInput = document.getElementById('target-date-hidden');
     let targetDate = targetDateInput?.value;
     let isForcedFailure = false;
@@ -1531,6 +1718,22 @@ async function processEncounter() {
         // 기호는 그대로 유지 (이미 일치하지 않을 수 있음)
     }
     
+    // 클라이언트 저장소에서 현재 게임 데이터 가져오기
+    let currentGameData = null;
+    if (typeof window.StorageModule !== 'undefined') {
+        await window.StorageModule.initDB();
+        const activeSlotId = await window.StorageModule.getActiveSlot();
+        if (activeSlotId) {
+            currentGameData = await window.StorageModule.getSaveSlot(activeSlotId);
+        }
+    }
+
+    if (!currentGameData) {
+        if (window.DebugLogger) window.DebugLogger.error('게임 데이터를 불러올 수 없습니다');
+        alert('게임 데이터를 불러올 수 없습니다. 게임을 다시 시작해주세요.');
+        return;
+    }
+
     const requestData = {
         target_date: targetDate,
         visual_description: visualDescription,
@@ -1539,8 +1742,22 @@ async function processEncounter() {
         black_dice_sum: finalBlackDiceSum,
         green_dice_symbols: finalGreenDiceSymbols,
         cthulhu_symbol_count: cthulhuCount,
-        is_forced_failure: isForcedFailure // 강제 실패 플래그 추가
+        is_forced_failure: isForcedFailure, // 강제 실패 플래그 추가
+        game_data: currentGameData  // 클라이언트에서 게임 데이터 전달
     };
+    
+    if (window.DebugLogger) {
+        window.DebugLogger.debug('조우 처리 요청 데이터', {
+            target_date: targetDate,
+            visual_description: visualDescription,
+            required_symbol: requiredSymbol,
+            base_difficulty: baseDifficulty,
+            black_dice_sum: finalBlackDiceSum,
+            green_dice_symbols: finalGreenDiceSymbols,
+            cthulhu_symbol_count: cthulhuCount,
+            is_forced_failure: isForcedFailure
+        });
+    }
     
     // 로딩 표시
     const storySection = document.getElementById('story-section');
@@ -1551,6 +1768,10 @@ async function processEncounter() {
     document.getElementById('story-summary').textContent = '';
     
     try {
+        if (window.DebugLogger) {
+            window.DebugLogger.logAPIRequest('POST', `${API_BASE}/api/game/encounter`, requestData);
+        }
+        const requestStartTime = Date.now();
         const response = await fetch(`${API_BASE}/api/game/encounter`, {
             method: 'POST',
             headers: {
@@ -1560,6 +1781,11 @@ async function processEncounter() {
         });
         
         const data = await response.json();
+        const requestDuration = Date.now() - requestStartTime;
+        
+        if (window.DebugLogger) {
+            window.DebugLogger.logAPIResponse('POST', `${API_BASE}/api/game/encounter`, data, requestDuration);
+        }
         
         if (data.success) {
             // 모험 진행 결과 태그 생성
@@ -1574,7 +1800,14 @@ async function processEncounter() {
             
             // 게임 상태 업데이트
             if (data.updated_state) {
+                const oldMadnessLevel = gameState.madness_tracker?.current_level;
+                const oldWeeklySuccess = gameState.weekly_progress?.success_count;
+                
+                if (window.DebugLogger) {
+                    window.DebugLogger.info('조우 처리 후 상태 업데이트', data.updated_state);
+                }
                 console.log('조우 처리 후 상태 업데이트:', data.updated_state);
+                
                 // gameState 구조가 없을 수 있으므로 안전하게 초기화
                 if (!gameState.madness_tracker) {
                     gameState.madness_tracker = {};
@@ -1584,6 +1817,22 @@ async function processEncounter() {
                 }
                 gameState.madness_tracker.current_level = data.updated_state.madness_level;
                 gameState.weekly_progress.success_count = data.updated_state.weekly_success_count;
+                
+                if (window.DebugLogger) {
+                    if (oldMadnessLevel !== data.updated_state.madness_level) {
+                        window.DebugLogger.info('광기 수치 변경', {
+                            old: oldMadnessLevel,
+                            new: data.updated_state.madness_level
+                        });
+                    }
+                    if (oldWeeklySuccess !== data.updated_state.weekly_success_count) {
+                        window.DebugLogger.info('주간 성공 횟수 변경', {
+                            old: oldWeeklySuccess,
+                            new: data.updated_state.weekly_success_count
+                        });
+                    }
+                }
+                
                 console.log('gameState 업데이트 후:', gameState);
                 updateUI();
             }
@@ -1591,14 +1840,27 @@ async function processEncounter() {
             // 크툴루 버튼 리셋
             resetCthulhuButton();
             
-            // 게임 상태를 서버에서 다시 로드하여 최신 상태 반영
+            // 클라이언트 저장소에 업데이트된 게임 데이터 저장
+            if (data.game_data && typeof window.StorageModule !== 'undefined') {
+                await window.StorageModule.initDB();
+                const activeSlotId = await window.StorageModule.getActiveSlot();
+                if (activeSlotId) {
+                    await window.StorageModule.autoSave(data.game_data, activeSlotId);
+                    if (window.DebugLogger) window.DebugLogger.info('게임 데이터 저장 완료', { activeSlotId });
+                    console.log('게임 데이터 저장 완료');
+                }
+            }
+            
+            // 게임 상태를 클라이언트 저장소에서 다시 로드하여 최신 상태 반영
             await loadGameState();
             
             // 성공/실패 표시 (이미 outcome 변수는 위에서 사용됨)
             if (outcome.is_success) {
                 storySection.style.borderColor = '#d4af37';
+                if (window.DebugLogger) window.DebugLogger.info('조우 성공');
             } else {
                 storySection.style.borderColor = '#8b0000';
+                if (window.DebugLogger) window.DebugLogger.info('조우 실패');
             }
             
             // 조우 결과 저장 (다음 조우 선택 제한에 사용)
@@ -1615,6 +1877,7 @@ async function processEncounter() {
             throw new Error('조우 처리 실패');
         }
     } catch (error) {
+        if (window.DebugLogger) window.DebugLogger.error('조우 처리 오류', error);
         console.error('조우 처리 오류:', error);
         const storyContent = document.getElementById('story-content');
         storyContent.style.display = 'block'; // 오류 시 표시

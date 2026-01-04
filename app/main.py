@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
 from app.api import game, narrative
 
 app = FastAPI(
@@ -10,7 +11,6 @@ app = FastAPI(
 )
 
 # CORS 설정
-from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,49 +30,45 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
-    """랜딩 페이지 (항상 표시)"""
+    """모든 경로를 SPA로 리다이렉트"""
     try:
-        with open("templates/landing.html", "r", encoding="utf-8") as f:
-            return f.read()
+        with open("templates/app.html", "r", encoding="utf-8") as f:
+            content = f.read()
+            return Response(
+                content=content,
+                media_type="text/html",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
     except FileNotFoundError:
-        return "<h1>랜딩 페이지를 찾을 수 없습니다.</h1>"
+        return "<h1>템플릿 파일을 찾을 수 없습니다.</h1>"
 
 
 @app.get("/play", response_class=HTMLResponse)
 async def read_play():
-    """게임 플레이 페이지"""
-    try:
-        with open("templates/index.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "<h1>템플릿 파일을 찾을 수 없습니다.</h1>"
+    """SPA로 리다이렉트"""
+    return await read_root()
 
 
 @app.get("/game", response_class=HTMLResponse)
 async def read_game():
-    """게임 페이지 (하위 호환성을 위해 /play로 리다이렉트)"""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/play", status_code=301)
+    """SPA로 리다이렉트"""
+    return await read_root()
 
 
 @app.get("/diary", response_class=HTMLResponse)
 async def read_diary():
-    """일기장 페이지"""
-    try:
-        with open("templates/diary.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "<h1>템플릿 파일을 찾을 수 없습니다.</h1>"
+    """SPA로 리다이렉트"""
+    return await read_root()
 
 
 @app.get("/report", response_class=HTMLResponse)
 async def read_report():
-    """보고서 페이지"""
-    try:
-        with open("templates/report.html", "r", encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return "<h1>템플릿 파일을 찾을 수 없습니다.</h1>"
+    """SPA로 리다이렉트"""
+    return await read_root()
 
 
 if __name__ == "__main__":
