@@ -32,7 +32,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def read_root():
     """모든 경로를 SPA로 리다이렉트"""
     try:
-        with open("/index.html", "r", encoding="utf-8") as f:
+        with open("index.html", "r", encoding="utf-8") as f:
             content = f.read()
             return Response(
                 content=content,
