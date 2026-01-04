@@ -1,29 +1,4 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "app/api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "app/api/index.py"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "app/api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "app/api/index.py"
-    }
-  ],
-  "functions": {
-    "app/api/index.py": {
-      "maxDuration": 30
-    }
-  }
+  "cleanUrls": true,
+  "framework": "jekyll"
 }
-
