@@ -383,7 +383,7 @@ const PlayComponent = {
         
         if (!valueDisplay || !itemsContainer || !wrapper) return;
         
-        const min = 3;
+        const min = 0;
         const max = 15;
         const step = 1;
         const itemHeight = 35;
@@ -1340,6 +1340,44 @@ const PlayComponent = {
         });
     },
 
+    // '전문 읽기' 버튼 업데이트
+    updateReadFullButton() {
+        const storySummary = document.getElementById('story-summary');
+        const storySection = document.getElementById('story-section');
+        
+        if (!storySummary || !storySection) return;
+        
+        // 기존 버튼 제거
+        const existingButton = document.getElementById('read-full-btn');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // story-summary에 내용이 있는지 확인
+        const summaryText = storySummary.textContent?.trim() || '';
+        const summaryHTML = storySummary.innerHTML?.trim() || '';
+        const hasContent = summaryText.length > 0 || (summaryHTML.length > 0 && summaryHTML !== '<p></p>');
+        
+        if (hasContent) {
+            // '전문 읽기' 버튼 생성
+            const readFullBtn = document.createElement('button');
+            readFullBtn.id = 'read-full-btn';
+            readFullBtn.className = 'btn btn-primary';
+            readFullBtn.textContent = '전문 읽기';
+            readFullBtn.style.marginTop = '20px';
+            
+            // 버튼 클릭 시 일기장 페이지로 이동
+            readFullBtn.addEventListener('click', () => {
+                if (window.Router) {
+                    window.Router.navigate('diary');
+                }
+            });
+            
+            // story-section에 버튼 추가
+            storySection.appendChild(readFullBtn);
+        }
+    },
+
     setupEventListeners() {
         const startGameBtn = document.getElementById('start-game-btn');
         if (startGameBtn) {
@@ -1458,6 +1496,8 @@ const PlayComponent = {
         const storySummary = document.getElementById('story-summary');
         if (storySummary) {
             storySummary.textContent = '';
+            // story-summary가 비워지면 버튼도 제거
+            this.updateReadFullButton();
         }
         
         try {
@@ -1489,6 +1529,8 @@ const PlayComponent = {
                 }
                 if (storySummary) {
                     storySummary.innerHTML = window.Utils.renderMarkdown(data.narrative.summary_line);
+                    // story-summary에 내용이 있으면 '전문 읽기' 버튼 표시
+                    this.updateReadFullButton();
                 }
                 
                 if (data.updated_state) {
@@ -1572,6 +1614,8 @@ const PlayComponent = {
             }
             if (storySummary) {
                 storySummary.textContent = '';
+                // 오류 발생 시에도 버튼 제거
+                this.updateReadFullButton();
             }
         } finally {
             if (window.DebugLogger) {

@@ -329,7 +329,7 @@ function initializeBlackDiceSlider() {
     
     if (!valueDisplay || !itemsContainer || !wrapper) return;
     
-    const min = 3;
+    const min = 0;
     const max = 15;
     const step = 1;
     const itemHeight = 35;
