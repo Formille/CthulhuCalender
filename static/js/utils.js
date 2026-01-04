@@ -6,6 +6,45 @@ if (typeof window.API_BASE === 'undefined') {
 }
 const API_BASE = window.API_BASE || '';
 
+// SVG 캐시 저장소
+const svgCache = new Map();
+
+/**
+ * SVG를 캐시에서 가져오거나 로드하는 헬퍼 함수
+ */
+async function getCachedSVG(url) {
+    // 캐시에 있으면 즉시 반환
+    if (svgCache.has(url)) {
+        return svgCache.get(url);
+    }
+    
+    // 캐시에 없으면 로드하고 캐시에 저장
+    try {
+        const response = await fetch(url);
+        const svgText = await response.text();
+        svgCache.set(url, svgText);
+        return svgText;
+    } catch (error) {
+        console.error(`SVG 로드 실패: ${url}`, error);
+        throw error;
+    }
+}
+
+/**
+ * 캐시된 SVG 텍스트로부터 SVG 엘리먼트 생성
+ */
+function createSVGElement(svgText, size) {
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svgElement = svgDoc.querySelector('svg');
+    if (svgElement) {
+        svgElement.setAttribute('width', String(size));
+        svgElement.setAttribute('height', String(size));
+        svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
+    }
+    return svgElement;
+}
+
 /**
  * 마크다운을 HTML로 변환하는 함수
  */
@@ -69,21 +108,15 @@ function renderMarkdown(markdownText) {
  */
 async function loadPistolIcon(container, size = 14) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/pistol.svg`);
-        const svgText = await response.text();
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-        const svgElement = svgDoc.querySelector('svg');
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/pistol.svg`);
+        const svgElement = createSVGElement(svgText, size);
         if (svgElement) {
-            svgElement.setAttribute('width', String(size));
-            svgElement.setAttribute('height', String(size));
-            svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
             const path = svgElement.querySelector('path');
             if (path) {
                 path.setAttribute('fill', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         if (window.DebugLogger) {
@@ -99,21 +132,15 @@ async function loadPistolIcon(container, size = 14) {
  */
 async function loadFlashlightIcon(container, size = 14) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/flashlight.svg`);
-        const svgText = await response.text();
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-        const svgElement = svgDoc.querySelector('svg');
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/flashlight.svg`);
+        const svgElement = createSVGElement(svgText, size);
         if (svgElement) {
-            svgElement.setAttribute('width', String(size));
-            svgElement.setAttribute('height', String(size));
-            svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
             const path = svgElement.querySelector('path');
             if (path) {
                 path.setAttribute('fill', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         if (window.DebugLogger) {
@@ -129,15 +156,9 @@ async function loadFlashlightIcon(container, size = 14) {
  */
 async function loadSearchIcon(container, size = 14) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/search.svg`);
-        const svgText = await response.text();
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-        const svgElement = svgDoc.querySelector('svg');
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/search.svg`);
+        const svgElement = createSVGElement(svgText, size);
         if (svgElement) {
-            svgElement.setAttribute('width', String(size));
-            svgElement.setAttribute('height', String(size));
-            svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
             const circle = svgElement.querySelector('circle');
             const line = svgElement.querySelector('line');
             if (circle) {
@@ -147,7 +168,7 @@ async function loadSearchIcon(container, size = 14) {
                 line.setAttribute('stroke', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         if (window.DebugLogger) {
@@ -163,22 +184,16 @@ async function loadSearchIcon(container, size = 14) {
  */
 async function loadCthulhuIcon(container, size = 14) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/cthulhu.svg`);
-        const svgText = await response.text();
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-        const svgElement = svgDoc.querySelector('svg');
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/cthulhu.svg`);
+        const svgElement = createSVGElement(svgText, size);
         if (svgElement) {
-            svgElement.setAttribute('width', String(size));
-            svgElement.setAttribute('height', String(size));
-            svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
             const path = svgElement.querySelector('path');
             if (path) {
                 path.setAttribute('fill', 'currentColor');
                 path.setAttribute('stroke', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         if (window.DebugLogger) {

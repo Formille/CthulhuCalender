@@ -4,6 +4,30 @@ if (typeof window.API_BASE === 'undefined') {
 }
 const API_BASE = window.API_BASE;
 
+// SVG 캐시 저장소
+const svgCache = new Map();
+
+/**
+ * SVG를 캐시에서 가져오거나 로드하는 헬퍼 함수
+ */
+async function getCachedSVG(url) {
+    // 캐시에 있으면 즉시 반환
+    if (svgCache.has(url)) {
+        return svgCache.get(url);
+    }
+    
+    // 캐시에 없으면 로드하고 캐시에 저장
+    try {
+        const response = await fetch(url);
+        const svgText = await response.text();
+        svgCache.set(url, svgText);
+        return svgText;
+    } catch (error) {
+        console.error(`SVG 로드 실패: ${url}`, error);
+        throw error;
+    }
+}
+
 // 게임 상태
 let gameState = null;
 let currentDate = null;
@@ -66,9 +90,7 @@ function renderMarkdown(markdownText) {
 // 권총 SVG 아이콘 로드 함수
 async function loadPistolIcon(container) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/pistol.svg`);
-        const svgText = await response.text();
-        // SVG 크기 조정 및 currentColor 적용
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/pistol.svg`);
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
         const svgElement = svgDoc.querySelector('svg');
@@ -82,7 +104,7 @@ async function loadPistolIcon(container) {
                 path.setAttribute('fill', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         console.error('권총 아이콘 로드 실패:', error);
@@ -94,9 +116,7 @@ async function loadPistolIcon(container) {
 // 손전등 SVG 아이콘 로드 함수
 async function loadFlashlightIcon(container) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/flashlight.svg`);
-        const svgText = await response.text();
-        // SVG 크기 조정 및 currentColor 적용
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/flashlight.svg`);
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
         const svgElement = svgDoc.querySelector('svg');
@@ -110,7 +130,7 @@ async function loadFlashlightIcon(container) {
                 path.setAttribute('fill', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         console.error('손전등 아이콘 로드 실패:', error);
@@ -122,9 +142,7 @@ async function loadFlashlightIcon(container) {
 // 돋보기 SVG 아이콘 로드 함수
 async function loadSearchIcon(container) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/search.svg`);
-        const svgText = await response.text();
-        // SVG 크기 조정 및 currentColor 적용
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/search.svg`);
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
         const svgElement = svgDoc.querySelector('svg');
@@ -142,7 +160,7 @@ async function loadSearchIcon(container) {
                 line.setAttribute('stroke', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         console.error('돋보기 아이콘 로드 실패:', error);
@@ -154,9 +172,7 @@ async function loadSearchIcon(container) {
 // 크툴루 SVG 아이콘 로드 함수
 async function loadCthulhuIcon(container) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/cthulhu.svg`);
-        const svgText = await response.text();
-        // SVG 크기 조정 및 currentColor 적용
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/cthulhu.svg`);
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
         const svgElement = svgDoc.querySelector('svg');
@@ -171,7 +187,7 @@ async function loadCthulhuIcon(container) {
                 path.setAttribute('stroke', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         console.error('크툴루 아이콘 로드 실패:', error);
@@ -183,8 +199,7 @@ async function loadCthulhuIcon(container) {
 // 작은 크기의 크툴루 아이콘 로드 함수 (태그용)
 async function loadCthulhuIconSmall(container) {
     try {
-        const response = await fetch(`${API_BASE}/static/images/cthulhu.svg`);
-        const svgText = await response.text();
+        const svgText = await getCachedSVG(`${API_BASE}/static/images/cthulhu.svg`);
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
         const svgElement = svgDoc.querySelector('svg');
@@ -198,7 +213,7 @@ async function loadCthulhuIconSmall(container) {
                 path.setAttribute('stroke', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         console.error('크툴루 아이콘 로드 실패:', error);
@@ -220,8 +235,7 @@ async function loadActionIconSmall(container, symbol) {
             return;
         }
         
-        const response = await fetch(iconPath);
-        const svgText = await response.text();
+        const svgText = await getCachedSVG(iconPath);
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
         const svgElement = svgDoc.querySelector('svg');
@@ -243,7 +257,7 @@ async function loadActionIconSmall(container, symbol) {
                 line.setAttribute('stroke', 'currentColor');
             }
             container.innerHTML = '';
-            container.appendChild(svgElement);
+            container.appendChild(svgElement.cloneNode(true));
         }
     } catch (error) {
         console.error('아이콘 로드 실패:', error);
