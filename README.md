@@ -50,4 +50,7 @@ uvicorn app.main:app --reload
 - 일요일은 특별 조우로, 이번 주 성공 횟수만큼 난이도가 감소합니다
 - 크툴루 기호가 나오면 광기 수치가 증가합니다
 - 매월 말에 점수를 계산하고 광기를 초기화합니다
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6bd311c (Initialize README with project details and setup)
