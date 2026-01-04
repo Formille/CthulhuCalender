@@ -1,15 +1,28 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from datetime import datetime
 import calendar
+from typing import Optional, Dict, Any
 from app.services import storage_service
 
 router = APIRouter(prefix="/api/narrative", tags=["narrative"])
 
 
-@router.get("/diary/{date}")
-async def get_diary_entry(date: str):
+def get_game_data(request_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """게임 데이터 가져오기 (클라이언트에서 전달한 데이터 우선)"""
+    if request_data and "game_data" in request_data:
+        return request_data["game_data"]
+    # 호환성을 위해 파일에서 로드 (점진적 마이그레이션)
+    try:
+        return storage_service.load_game_data()
+    except Exception:
+        # 파일이 없으면 빈 게임 데이터 반환
+        return storage_service.initialize_new_game(1925)
+
+
+@router.post("/diary/{date}")
+async def get_diary_entry(date: str, request: Optional[Dict[str, Any]] = Body(None)):
     """특정 날짜 일기 조회"""
-    data = storage_service.load_game_data()
+    data = get_game_data(request)
     
     try:
         date_obj = datetime.strptime(date, "%Y-%m-%d")
@@ -31,9 +44,9 @@ async def get_diary_entry(date: str):
 
 
 @router.get("/month/{month}")
-async def get_month_diary(month: str):
-    """월별 일기 목록"""
-    data = storage_service.load_game_data()
+async def get_month_diary_get(month: str):
+    """월별 일기 목록 (GET)"""
+    data = get_game_data(None)
     
     # 월 이름 정규화 (예: "january" -> "January")
     month_name = month.capitalize()
@@ -66,10 +79,46 @@ async def get_month_diary(month: str):
     }
 
 
-@router.get("/chapter/{month}")
-async def get_chapter_summary(month: str):
+@router.post("/month/{month}")
+async def get_month_diary(month: str, request: Optional[Dict[str, Any]] = Body(None)):
+    """월별 일기 목록 (POST)"""
+    data = get_game_data(request)
+    
+    # 월 이름 정규화 (예: "january" -> "January")
+    month_name = month.capitalize()
+    
+    chapter = storage_service.get_current_month_chapter(data, month_name)
+    
+    entries = []
+    for entry in chapter.get("daily_entries", []):
+        game_snapshot = entry.get("game_logic_snapshot", {})
+        entries.append({
+            "date": entry["diary_write_date"],  # 하위 호환성을 위해 유지
+            "diary_write_date": entry["diary_write_date"],  # 일기장 화면에서 사용
+            "day_of_week": entry.get("day_of_week", ""),
+            "summary": entry["ai_generated_content"].get("summary_line", ""),
+            "full_text": entry["ai_generated_content"].get("main_text", ""),
+            "tone_tag": entry["ai_generated_content"].get("tone_tag", ""),
+            "is_success": game_snapshot.get("is_success", False),
+            "madness_triggered": game_snapshot.get("madness_triggered", False),
+            "cthulhu_symbol_count": game_snapshot.get("cthulhu_symbol_count", 0),
+            "action_type": game_snapshot.get("action_type", ""),
+            "dice_sum": game_snapshot.get("dice_result", {}).get("sum", 0),
+            "game_logic_snapshot": game_snapshot  # target_date 접근을 위해 전체 포함
+        })
+    
+    return {
+        "success": True,
+        "month": month_name,
+        "entries": entries,
+        "chapter_summary": chapter.get("chapter_summary", "")
+    }
+
+
+@router.post("/chapter/{month}")
+async def get_chapter_summary(month: str, request: Optional[Dict[str, Any]] = Body(None)):
     """월간 챕터 요약 조회"""
-    data = storage_service.load_game_data()
+    data = get_game_data(request)
     
     month_name = month.capitalize()
     chapters = data.get("campaign_history", {}).get("monthly_chapters", [])
@@ -90,10 +139,10 @@ async def get_chapter_summary(month: str):
     raise HTTPException(status_code=404, detail="해당 월의 챕터를 찾을 수 없습니다.")
 
 
-@router.get("/all-chapters")
-async def get_all_chapters():
+@router.post("/all-chapters")
+async def get_all_chapters(request: Optional[Dict[str, Any]] = Body(None)):
     """모든 챕터 목록 조회 (프롤로그 포함)"""
-    data = storage_service.load_game_data()
+    data = get_game_data(request)
     
     chapters = data.get("campaign_history", {}).get("monthly_chapters", [])
     
@@ -126,10 +175,10 @@ async def get_all_chapters():
     }
 
 
-@router.get("/prologue")
-async def get_prologue():
+@router.post("/prologue")
+async def get_prologue(request: Optional[Dict[str, Any]] = Body(None)):
     """프롤로그 조회"""
-    data = storage_service.load_game_data()
+    data = get_game_data(request)
     
     prologue = data.get("campaign_history", {}).get("prologue", {})
     
@@ -146,10 +195,10 @@ async def get_prologue():
     }
 
 
-@router.get("/month/{month}/completion-status")
-async def get_month_completion_status(month: str):
+@router.post("/month/{month}/completion-status")
+async def get_month_completion_status(month: str, request: Optional[Dict[str, Any]] = Body(None)):
     """월별 완료 상태 확인"""
-    data = storage_service.load_game_data()
+    data = get_game_data(request)
     
     # 월 이름 정규화
     month_name = month.capitalize()
@@ -199,10 +248,10 @@ async def get_month_completion_status(month: str):
     }
 
 
-@router.get("/report/{month}")
-async def get_month_report(month: str):
+@router.post("/report/{month}")
+async def get_month_report(month: str, request: Optional[Dict[str, Any]] = Body(None)):
     """월별 보고서 조회 (프롬프트 정보 및 통계)"""
-    data = storage_service.load_game_data()
+    data = get_game_data(request)
     
     # 월 이름 정규화
     month_name = month.capitalize()

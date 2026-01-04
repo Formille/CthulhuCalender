@@ -1,8 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import random
+import json
+import os
+from pathlib import Path
 from app.models.game_models import (
     GameState, EncounterTarget, DiceRoll, DailyStoryContext, ActionType
 )
@@ -13,10 +16,14 @@ from app.services import storage_service
 
 router = APIRouter(prefix="/api/game", tags=["game"])
 
+# 슬롯 저장 디렉토리
+SLOTS_DIR = Path(__file__).parent.parent.parent / "data" / "slots"
+SLOTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class StartGameRequest(BaseModel):
     player_name: Optional[str] = "John Miller"
-    campaign_year: Optional[int] = 1925  # 1925 또는 1931
+    # campaign_year는 더 이상 사용하지 않음 (항상 1925)
 
 
 class EncounterRequest(BaseModel):
@@ -28,61 +35,97 @@ class EncounterRequest(BaseModel):
     green_dice_symbols: List[str]  # ["COMBAT", "SEARCH"]
     cthulhu_symbol_count: int = 0  # 크툴루 기호 개수 (0~3)
     is_forced_failure: bool = False  # 강제 실패 플래그
-    is_forced_failure: bool = False  # 강제 실패 플래그
+    game_data: Optional[Dict[str, Any]] = None  # 클라이언트에서 게임 데이터 전달
 
 
 class MonthEndRequest(BaseModel):
     new_rules_unlocked: List[str] = []
     story_revelation: str = ""
+    game_data: Optional[Dict[str, Any]] = None  # 클라이언트에서 게임 데이터 전달
 
 
 class MonthStartRequest(BaseModel):
     new_rules_unlocked: List[str] = []
     story_revelation: str = ""
+    game_data: Optional[Dict[str, Any]] = None  # 클라이언트에서 게임 데이터 전달
 
 
 class MonthConclusionRequest(BaseModel):
     month: str  # "January"
+    game_data: Optional[Dict[str, Any]] = None  # 클라이언트에서 게임 데이터 전달
+
+
+class SaveSlotRequest(BaseModel):
+    slot_id: str
+    game_data: Dict[str, Any]
 
 
 @router.post("/start")
 async def start_game(request: StartGameRequest):
-    """새 게임 시작 (프롤로그 반환)"""
-    # 연도 검증
-    if request.campaign_year not in [1925, 1931]:
-        raise HTTPException(
-            status_code=400, 
-            detail="campaign_year는 1925 또는 1931만 선택할 수 있습니다."
-        )
+    """새 게임 시작 (프롤로그 반환) - 항상 1925년으로 생성"""
+    # 연도는 항상 1925로 고정
+    campaign_year = 1925
     
     # AI로 프롤로그 생성
     from app.services import llm_service
-    ai_prologue = await llm_service.generate_prologue(request.campaign_year)
+    ai_prologue = await llm_service.generate_prologue(campaign_year)
     
     # 게임 데이터 초기화
-    data = storage_service.initialize_new_game(campaign_year=request.campaign_year)
+    data = storage_service.initialize_new_game(campaign_year=campaign_year)
     if request.player_name:
         data["save_file_info"]["player_name"] = request.player_name
     
     # AI 생성 프롤로그로 교체
-    prologue_date = f"{request.campaign_year - 1}-12-31"
+    prologue_date = f"{campaign_year - 1}-12-31"
     data["campaign_history"]["prologue"]["content"] = ai_prologue
     data["campaign_history"]["prologue"]["date"] = prologue_date
+    data["campaign_history"]["prologue"]["is_finalized"] = True  # LLM이 생성했으므로 완료 상태로 설정
     
-    storage_service.save_game_data(data)
-    
+    # 클라이언트에서 저장하도록 전체 게임 데이터 반환
     return {
         "success": True,
         "prologue": ai_prologue,
         "game_state": data["current_state"],
-        "campaign_year": request.campaign_year
+        "campaign_year": campaign_year,
+        "game_data": data  # 클라이언트에서 저장할 전체 데이터 (프롤로그 포함)
     }
 
 
 @router.get("/state")
-async def get_game_state():
-    """현재 게임 상태 조회"""
-    data = storage_service.load_game_data()
+async def get_game_state_get():
+    """현재 게임 상태 조회 (GET - 클라이언트에서 저장된 데이터 사용)"""
+    # GET 요청의 경우 클라이언트에서 저장된 데이터를 사용하도록 빈 응답 반환
+    # 또는 기본값 반환
+    return {
+        "success": True,
+        "game_state": {
+            "today_date": "1925-01-01",
+            "madness_tracker": {"current_level": 0},
+            "weekly_progress": {"success_count": 0, "completed_days_in_week": []}
+        },
+        "legacy_inventory": {},
+        "campaign_year": 1925
+    }
+
+
+@router.post("/state")
+async def get_game_state(request: Optional[Dict[str, Any]] = None):
+    """현재 게임 상태 조회 (POST - 클라이언트에서 게임 데이터 전달)"""
+    # 요청에서 게임 데이터 받기 (없으면 빈 데이터)
+    if request and "game_data" in request:
+        data = request["game_data"]
+    else:
+        # 호환성을 위해 빈 게임 데이터 반환
+        return {
+            "success": True,
+            "game_state": {
+                "today_date": "1925-01-01",
+                "madness_tracker": {"current_level": 0},
+                "weekly_progress": {"success_count": 0, "completed_days_in_week": []}
+            },
+            "legacy_inventory": {},
+            "campaign_year": 1925
+        }
     
     # 일기를 쓰지 않은 가장 최근 날짜 계산
     campaign_year = data.get("save_file_info", {}).get("campaign_year", 1925)
@@ -143,7 +186,10 @@ async def get_game_state():
 @router.post("/encounter")
 async def process_encounter(request: EncounterRequest):
     """조우 처리 (주사위 결과 입력, 스토리 생성)"""
-    data = storage_service.load_game_data()
+    # 클라이언트에서 게임 데이터 받기
+    if not request.game_data:
+        raise HTTPException(status_code=400, detail="game_data가 필요합니다.")
+    data = request.game_data
     
     # 현재 상태 로드
     current_state = data.get("current_state", {})
@@ -539,8 +585,7 @@ async def process_encounter(request: EncounterRequest):
     next_date = diary_write_date_obj + timedelta(days=1)
     data["current_state"]["today_date"] = next_date.strftime("%Y-%m-%d")
     
-    storage_service.save_game_data(data)
-    
+    # 클라이언트에서 저장하도록 업데이트된 전체 게임 데이터 반환
     return {
         "success": True,
         "outcome": outcome,
@@ -551,14 +596,18 @@ async def process_encounter(request: EncounterRequest):
         "updated_state": {
             "madness_level": game_state.madness_level,
             "weekly_success_count": game_state.weekly_success_count
-        }
+        },
+        "game_data": data  # 클라이언트에서 저장할 전체 업데이트된 데이터
     }
 
 
 @router.post("/month-end")
 async def process_month_end(request: MonthEndRequest):
     """월말 처리 (점수 계산, 월간 요약 생성)"""
-    data = storage_service.load_game_data()
+    # 클라이언트에서 게임 데이터 받기
+    if not request.game_data:
+        raise HTTPException(status_code=400, detail="game_data가 필요합니다.")
+    data = request.game_data
     
     current_state = data.get("current_state", {})
     today_date_str = current_state.get("today_date", "1926-01-01")
@@ -641,21 +690,24 @@ async def process_month_end(request: MonthEndRequest):
         legacy_inventory["active_rules"] = active_rules
         data["legacy_inventory"] = legacy_inventory
     
-    storage_service.save_game_data(data)
-    
+    # 클라이언트에서 저장하도록 업데이트된 전체 게임 데이터 반환
     return {
         "success": True,
         "monthly_score": monthly_score,
         "chapter_summary": chapter_summary,
         "bosses_defeated": bosses_defeated,
-        "madness_state": chapter_data["madness_state"]
+        "madness_state": chapter_data["madness_state"],
+        "game_data": data  # 클라이언트에서 저장할 전체 업데이트된 데이터
     }
 
 
 @router.post("/month-start")
 async def process_month_start(request: MonthStartRequest):
     """새 달 시작 (레거시 업데이트 반영)"""
-    data = storage_service.load_game_data()
+    # 클라이언트에서 게임 데이터 받기
+    if not request.game_data:
+        raise HTTPException(status_code=400, detail="game_data가 필요합니다.")
+    data = request.game_data
     
     current_state = data.get("current_state", {})
     
@@ -674,19 +726,22 @@ async def process_month_start(request: MonthStartRequest):
         legacy_inventory["collected_artifacts"] = collected_artifacts
         data["legacy_inventory"] = legacy_inventory
     
-    storage_service.save_game_data(data)
-    
+    # 클라이언트에서 저장하도록 업데이트된 전체 게임 데이터 반환
     return {
         "success": True,
         "message": "새 달이 시작되었습니다.",
-        "updated_state": current_state
+        "updated_state": current_state,
+        "game_data": data  # 클라이언트에서 저장할 전체 업데이트된 데이터
     }
 
 
 @router.post("/month-conclusion")
 async def process_month_conclusion(request: MonthConclusionRequest):
     """월별 결산 처리 (LLM으로 결말 생성)"""
-    data = storage_service.load_game_data()
+    # 클라이언트에서 게임 데이터 받기
+    if not request.game_data:
+        raise HTTPException(status_code=400, detail="game_data가 필요합니다.")
+    data = request.game_data
     
     # 월 이름 정규화
     month_name = request.month.capitalize()
@@ -820,13 +875,14 @@ async def process_month_conclusion(request: MonthConclusionRequest):
     chapter["chapter_summary"] = conclusion_text  # chapter_summary에 영구 저장
     chapter["monthly_score"] = monthly_score  # 점수 저장
     chapter["is_completed"] = True  # 월의 말일 보고서 작성 시 완료 처리
-    storage_service.save_game_data(data)
     
+    # 클라이언트에서 저장하도록 업데이트된 전체 게임 데이터 반환
     return {
         "success": True,
         "month": month_name,
         "conclusion": conclusion_text,
-        "monthly_score": monthly_score
+        "monthly_score": monthly_score,
+        "game_data": data  # 클라이언트에서 저장할 전체 업데이트된 데이터
     }
 
 
@@ -849,4 +905,116 @@ async def get_encounter_data():
         raise HTTPException(status_code=404, detail="daily_encounter_data.json 파일을 찾을 수 없습니다.")
     except json.JSONDecodeError:
         raise HTTPException(status_code=500, detail="daily_encounter_data.json 파일 파싱 오류")
+
+
+@router.post("/save-slot")
+async def save_slot_to_server(request: SaveSlotRequest):
+    """클라이언트에서 서버로 슬롯 저장 (선택적 백업)"""
+    slot_id = request.slot_id
+    game_data = request.game_data
+    
+    # 슬롯별 파일로 저장
+    slot_file = SLOTS_DIR / f"save_slot_{slot_id}.json"
+    
+    try:
+        # 마지막 플레이 시간 업데이트
+        if "save_file_info" in game_data:
+            game_data["save_file_info"]["last_played"] = datetime.now().isoformat()
+        
+        with open(slot_file, "w", encoding="utf-8") as f:
+            json.dump(game_data, f, ensure_ascii=False, indent=2)
+        
+        return {
+            "success": True,
+            "slot_id": slot_id,
+            "message": "슬롯이 서버에 저장되었습니다."
+        }
+    except IOError as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 저장 실패: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 저장 중 오류 발생: {str(e)}")
+
+
+@router.get("/load-slot/{slot_id}")
+async def load_slot_from_server(slot_id: str):
+    """서버에서 슬롯 로드 (선택적 복원)"""
+    slot_file = SLOTS_DIR / f"save_slot_{slot_id}.json"
+    
+    if not slot_file.exists():
+        raise HTTPException(status_code=404, detail="서버에 해당 슬롯을 찾을 수 없습니다.")
+    
+    try:
+        with open(slot_file, "r", encoding="utf-8") as f:
+            game_data = json.load(f)
+        
+        return {
+            "success": True,
+            "slot_id": slot_id,
+            "game_data": game_data
+        }
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 파일 파싱 오류: {str(e)}")
+    except IOError as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 로드 실패: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 로드 중 오류 발생: {str(e)}")
+
+
+@router.delete("/delete-slot/{slot_id}")
+async def delete_slot_from_server(slot_id: str):
+    """서버에서 슬롯 삭제"""
+    slot_file = SLOTS_DIR / f"save_slot_{slot_id}.json"
+    
+    if not slot_file.exists():
+        raise HTTPException(status_code=404, detail="서버에 해당 슬롯을 찾을 수 없습니다.")
+    
+    try:
+        slot_file.unlink()
+        return {
+            "success": True,
+            "slot_id": slot_id,
+            "message": "슬롯이 서버에서 삭제되었습니다."
+        }
+    except IOError as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 삭제 실패: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 삭제 중 오류 발생: {str(e)}")
+
+
+@router.get("/list-slots")
+async def list_slots_from_server():
+    """서버에 저장된 모든 슬롯 목록 조회"""
+    try:
+        slots = []
+        for slot_file in SLOTS_DIR.glob("save_slot_*.json"):
+            slot_id = slot_file.stem.replace("save_slot_", "")
+            try:
+                with open(slot_file, "r", encoding="utf-8") as f:
+                    game_data = json.load(f)
+                
+                # 메타데이터만 추출
+                save_info = game_data.get("save_file_info", {})
+                metadata = {
+                    "slot_id": slot_id,
+                    "player_name": save_info.get("player_name", "Unknown"),
+                    "campaign_year": save_info.get("campaign_year", 1925),
+                    "last_played": save_info.get("last_played", ""),
+                    "file_size": slot_file.stat().st_size
+                }
+                slots.append(metadata)
+            except Exception as e:
+                # 개별 파일 오류는 무시하고 계속 진행
+                print(f"슬롯 {slot_id} 로드 실패: {e}")
+                continue
+        
+        # 마지막 플레이 시간 기준 정렬
+        slots.sort(key=lambda x: x.get("last_played", ""), reverse=True)
+        
+        return {
+            "success": True,
+            "slots": slots,
+            "count": len(slots)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"슬롯 목록 조회 실패: {str(e)}")
 

@@ -190,7 +190,16 @@ async def generate_daily_story(
     result = await call_mistral_api(system_prompt, user_prompt, max_tokens=1000)
     
     if result:
-        return result.strip()
+        result_text = result.strip()
+        print("\n" + "="*80)
+        print("[LLM 생성 데이터] 일일 스토리")
+        print("="*80)
+        print(f"날짜: {context.state.current_date}")
+        print(f"대상: {context.target.visual_description}")
+        print(f"결과: {'성공' if context.is_success else '실패'}")
+        print(f"\n생성된 스토리:\n{result_text}")
+        print("="*80 + "\n")
+        return result_text
     else:
         # 폴백 메시지
         outcome = "성공" if context.is_success else "실패"
@@ -225,7 +234,16 @@ async def generate_monthly_summary(chapter_data: dict, campaign_year: int = 1925
     result = await call_mistral_api(system_prompt, user_prompt, max_tokens=300)
     
     if result:
-        return result.strip()
+        result_text = result.strip()
+        print("\n" + "="*80)
+        print("[LLM 생성 데이터] 월간 요약")
+        print("="*80)
+        print(f"월: {chapter_data.get('month_name', '한 달')}")
+        print(f"점수: {chapter_data.get('final_score', 0)}점")
+        print(f"정신 상태: {chapter_data.get('madness_state', '알 수 없음')}")
+        print(f"\n생성된 요약:\n{result_text}")
+        print("="*80 + "\n")
+        return result_text
     else:
         return f"{chapter_data.get('month_name', '한 달')}의 수사가 끝났습니다."
 
@@ -293,7 +311,15 @@ async def generate_prologue(campaign_year: int) -> str:
     result = await call_mistral_api(system_prompt, user_prompt, max_tokens=800)
     
     if result:
-        return result.strip()
+        result_text = result.strip()
+        print("\n" + "="*80)
+        print("[LLM 생성 데이터] 프롤로그")
+        print("="*80)
+        print(f"캠페인 연도: {campaign_year}")
+        print(f"프롤로그 날짜: {campaign_year - 1}-12-31")
+        print(f"\n생성된 프롤로그:\n{result_text}")
+        print("="*80 + "\n")
+        return result_text
     else:
         # 폴백: 기본 프롤로그 반환
         from app.services import storage_service
@@ -324,7 +350,14 @@ async def generate_summary_line(story_text: str) -> str:
     result = await call_mistral_api(system_prompt, user_prompt, max_tokens=100)
     
     if result:
-        return result.strip()
+        result_text = result.strip()
+        print("\n" + "="*80)
+        print("[LLM 생성 데이터] 요약 줄")
+        print("="*80)
+        print(f"원본 스토리 길이: {len(story_text)}자")
+        print(f"\n생성된 요약:\n{result_text}")
+        print("="*80 + "\n")
+        return result_text
     else:
         # 폴백: 첫 50자만 반환
         return story_text[:50] + "..." if len(story_text) > 50 else story_text
@@ -388,7 +421,17 @@ async def generate_weekly_summary(
     result = await call_mistral_api(system_prompt, user_prompt, max_tokens=500)
     
     if result:
-        return result.strip()
+        result_text = result.strip()
+        print("\n" + "="*80)
+        print("[LLM 생성 데이터] 주간 요약")
+        print("="*80)
+        print(f"일요일 조우 날짜: {sunday_encounter.get('date', '알 수 없음')}")
+        print(f"일요일 조우 대상: {sunday_encounter.get('target_name', '알 수 없음')}")
+        print(f"일요일 조우 결과: {'성공' if sunday_encounter.get('is_success', False) else '실패'}")
+        print(f"주간 주요 조우 수: {len(key_encounters)}건")
+        print(f"\n생성된 주간 요약:\n{result_text}")
+        print("="*80 + "\n")
+        return result_text
     else:
         # 폴백: 간단한 요약 반환
         return f"이번 주 {len(key_encounters)}건의 조우가 있었고, 일요일 조우는 {'성공' if sunday_encounter.get('is_success', False) else '실패'}했습니다."
@@ -489,7 +532,19 @@ async def generate_monthly_conclusion(month_data: dict, campaign_year: int = 192
     result = await call_mistral_api(system_prompt, user_prompt, max_tokens=1200)
     
     if result:
-        return result.strip()
+        result_text = result.strip()
+        stats = month_data.get("statistics", {})
+        print("\n" + "="*80)
+        print("[LLM 생성 데이터] 월간 결말")
+        print("="*80)
+        print(f"월: {year}년 {month_name}")
+        print(f"전체 조우: {stats.get('total_entries', 0)}건")
+        print(f"성공률: {stats.get('success_rate', 0)}%")
+        print(f"일요일 조우 성공률: {stats.get('sunday_success_rate', 0)}%")
+        print(f"광기 발작: {stats.get('madness_triggered_count', 0)}회")
+        print(f"\n생성된 월간 결말:\n{result_text}")
+        print("="*80 + "\n")
+        return result_text
     else:
         # 폴백: 간단한 결말 반환
         return f"{year}년 {month_name}의 조사가 끝났습니다. 발견한 단서들과 경험한 공포들이 내 마음속에 깊이 새겨졌다. 다음 달이 기다리고 있다."
