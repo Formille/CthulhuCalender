@@ -37,7 +37,7 @@ header {
 
 h1 {
     color: #d4af37;
-    font-size: 2.5em;
+    font-size: 2rem;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     margin-bottom: 10px;
 }
@@ -914,7 +914,7 @@ h1 {
 .main-nav {
     display: flex;
     justify-content: center;
-    gap: 40px;
+    gap: 30px;
     margin-top: 30px;
     padding: 0px;
     background: rgba(0, 0, 0, 0.4);
@@ -957,40 +957,12 @@ h1 {
     margin: 20px 0;
 }
 
-/* Landing 페이지 스타일 */
-.landing-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
-}
-
-.landing-header {
-    margin-bottom: 3rem;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    border: 2px solid #8b4513;
-}
-
-.landing-header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-    color: #d4af37;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-}
-
-.landing-header .subtitle {
-    font-size: 1.2rem;
-    color: #c0c0c0;
-    font-style: italic;
-}
-
 .landing-options {
+    max-width: 1200px;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    margin-top: 3rem;
+    margin-top: 2rem;
 }
 
 .option-card {

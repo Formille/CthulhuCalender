@@ -58,3 +58,5 @@ for path in html_paths:
 # Vercel용 핸들러 생성
 handler = Mangum(app, lifespan="off")
 
+
+

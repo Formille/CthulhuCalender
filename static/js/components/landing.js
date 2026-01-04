@@ -11,48 +11,36 @@ const LandingComponent = {
 
     render() {
         return `
-            <div class="landing-container">
-                <header class="landing-header">
-                    <h1>365 어드벤처: 크툴루</h1>
-                    <p class="subtitle">러브크래프트의 공포 세계로 떠나는 <br> 1년의 기록</p>
-                    <nav class="main-nav">
-                        <a href="#" class="nav-link active" data-route="landing">홈</a>
-                        <a href="#" class="nav-link" data-route="play">기록하기</a>
-                        <a href="#" class="nav-link" data-route="diary">일기장</a>
-                        <a href="#" class="nav-link" data-route="report">보고서</a>
-                    </nav>
-                </header>
 
-                <div id="main-selection" class="landing-options">
-                    <div class="option-card" id="new-game-card">
-                        <h2>🆕 새로 시작하기</h2>
-                        <p>새로운 모험을 시작합니다. 1925년 아캄의 이야기가 펼쳐집니다.</p>
-                    </div>
-                    <div class="option-card" id="load-game-card">
-                        <h2>📂 불러오기</h2>
-                        <p>이전에 저장한 게임을 불러옵니다.</p>
-                    </div>
+            <div id="main-selection" class="landing-options">
+                <div class="option-card" id="new-game-card">
+                    <h2>🆕 새로 시작하기</h2>
+                    <p>새로운 모험을 시작합니다. 1925년 아캄의 이야기가 펼쳐집니다.</p>
                 </div>
-
-                <div id="loading" class="loading">
-                    <p>프롤로그를 생성하는 중...</p>
-                    <div class="spinner"></div>
+                <div class="option-card" id="load-game-card">
+                    <h2>📂 불러오기</h2>
+                    <p>이전에 저장한 게임을 불러옵니다.</p>
                 </div>
+            </div>
 
-                <!-- 슬롯 선택 모달 -->
-                <div id="slot-selection-modal" class="modal" style="display: none;">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h2>저장된 게임 불러오기</h2>
-                            <button class="modal-close" id="close-slot-modal">&times;</button>
+            <div id="loading" class="loading">
+                <p>프롤로그를 생성하는 중...</p>
+                <div class="spinner"></div>
+            </div>
+
+            <!-- 슬롯 선택 모달 -->
+            <div id="slot-selection-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>저장된 게임 불러오기</h2>
+                        <button class="modal-close" id="close-slot-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="slot-list" class="slot-list">
+                            <!-- 슬롯 목록이 여기에 동적으로 추가됨 -->
                         </div>
-                        <div class="modal-body">
-                            <div id="slot-list" class="slot-list">
-                                <!-- 슬롯 목록이 여기에 동적으로 추가됨 -->
-                            </div>
-                            <div id="no-slots-message" class="no-slots" style="display: none;">
-                                <p>저장된 게임이 없습니다.</p>
-                            </div>
+                        <div id="no-slots-message" class="no-slots" style="display: none;">
+                            <p>저장된 게임이 없습니다.</p>
                         </div>
                     </div>
                 </div>

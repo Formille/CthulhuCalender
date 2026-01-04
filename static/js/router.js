@@ -136,11 +136,7 @@ class Router {
         // 헤더 표시/숨김
         const header = document.getElementById('app-header');
         if (header) {
-            if (route === 'landing') {
-                header.style.display = 'none';
-            } else {
-                header.style.display = 'block';
-            }
+            header.style.display = 'block';
         }
 
         // 게임 상태 표시/숨김

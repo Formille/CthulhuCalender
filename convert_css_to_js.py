@@ -12,10 +12,7 @@ with open('static/css/style.css', 'r', encoding='utf-8') as f:
 js_content = f"""// CSS 스타일을 동적으로 주입
 // 이 파일은 static/css/style.css에서 자동 생성되었습니다.
 (function() {{
-    // 이미 주입되었는지 확인
-    if (document.getElementById('injected-styles')) {{
-        return;
-    }}
+
     
     // <style> 태그 생성 및 CSS 주입
     const style = document.createElement('style');
@@ -39,4 +36,6 @@ with open('static/js/styles.js', 'w', encoding='utf-8') as f:
     f.write(js_content)
 
 print("CSS가 JavaScript로 변환되었습니다: static/js/styles.js")
+
+
 
