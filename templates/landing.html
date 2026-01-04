@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>365 어드벤처: 크툴루</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .landing-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+        .landing-header {
+            margin-bottom: 3rem;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 2px solid #8b4513;
+        }
+        .landing-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #d4af37;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        .landing-header .subtitle {
+            font-size: 1.2rem;
+            color: #c0c0c0;
+            font-style: italic;
+        }
+        .landing-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+        .option-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .option-card:hover {
+            border-color: #d4af37;
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+            transform: translateY(-2px);
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .option-card h2 {
+            margin-top: 0;
+            color: #d4af37;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        .option-card p {
+            color: #e0e0e0;
+            margin-bottom: 0;
+        }
+        .year-selection {
+            display: none;
+            margin-top: 2rem;
+        }
+        .year-selection.active {
+            display: block;
+        }
+        .year-selection h2 {
+            color: #d4af37;
+            margin-bottom: 1.5rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        .year-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .year-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .year-card:hover {
+            border-color: #d4af37;
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+            transform: translateY(-2px);
+            background: rgba(0, 0, 0, 0.6);
+        }
+        .year-card h3 {
+            margin-top: 0;
+            color: #d4af37;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        .year-card .year-description {
+            color: #c0c0c0;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+        .year-card .year-details {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #444;
+            font-size: 0.85rem;
+            color: #e0e0e0;
+            text-align: left;
+        }
+        .year-card .year-details strong {
+            color: #d4af37;
+        }
+        .btn-back {
+            margin-top: 1rem;
+            background: #8b4513;
+            color: #fff;
+        }
+        .btn-back:hover {
+            background: #a0522d;
+        }
+        .loading {
+            display: none;
+            margin-top: 2rem;
+            color: #d4af37;
+            font-style: italic;
+        }
+        .loading.active {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid rgba(139, 69, 19, 0.3);
+            border-top: 4px solid #d4af37;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="landing-container">
+            <header class="landing-header">
+                <h1>365 어드벤처: 크툴루</h1>
+                <p class="subtitle">러브크래프트의 공포 세계로 떠나는 <br> 1년의 기록</p>
+                <!-- 네비게이션 -->
+                <nav class="main-nav">
+                    <a href="/" class="nav-link active">홈</a>
+                    <a href="/play" class="nav-link">기록하기</a>
+                    <a href="/diary" class="nav-link">일기장</a>
+                    <a href="/report" class="nav-link">보고서</a>
+                </nav>
+            </header>
+
+        <!-- 메인 선택 화면 -->
+        <div id="main-selection" class="landing-options">
+            <div class="option-card" id="new-game-card">
+                <h2>🆕 새로 시작하기</h2>
+                <p>새로운 모험을 시작합니다. 1925년 또는 1931년 중 하나를 선택하세요.</p>
+            </div>
+            <div class="option-card" id="load-game-card">
+                <h2>📂 불러오기</h2>
+                <p>이전에 저장한 게임을 불러옵니다.</p>
+            </div>
+        </div>
+
+        <!-- 연도 선택 화면 -->
+        <div id="year-selection" class="year-selection">
+            <h2>어떤 시대의 이야기를 시작하시겠습니까?</h2>
+            <div class="year-options">
+                <div class="year-card" data-year="1925">
+                    <h3>1925년 - 크툴루의 부름</h3>
+                    <p class="year-description">크툴루 신화의 핵심 연도</p>
+                    <div class="year-details">
+                        <strong>주요 배경:</strong><br>
+                        • 《크툴루의 부름》의 핵심 사건 (구스타프 요한센의 일기)<br>
+                        • 레드 훅의 공포<br>
+                        • 금고 안에서<br>
+                        • 남태평양의 외딴 섬과 항구의 기이한 소문들<br>
+                        <strong>특징:</strong> 크툴루를 숭배하는 광신도들의 음모
+                    </div>
+                </div>
+                <div class="year-card" data-year="1931">
+                    <h3>1931년 - 인스머스의 그림자</h3>
+                    <p class="year-description">후기 걸작의 시대</p>
+                    <div class="year-details">
+                        <strong>주요 배경:</strong><br>
+                        • 《인스머스의 그림자》<br>
+                        • 《광기의 산맥에서》<br>
+                        • 미스카토닉 대학 탐사대의 남극 탐험<br>
+                        • 해안가 마을의 비밀<br>
+                        <strong>특징:</strong> 딥 원스와 인간의 잡종에 대한 공포
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-back" id="back-btn">← 돌아가기</button>
+        </div>
+
+        <!-- 로딩 화면 -->
+        <div id="loading" class="loading">
+            <p>프롤로그를 생성하는 중...</p>
+            <div class="spinner"></div>
+        </div>
+        </div>
+    </div>
+
+    <script>
+        const mainSelection = document.getElementById('main-selection');
+        const yearSelection = document.getElementById('year-selection');
+        const loading = document.getElementById('loading');
+        const newGameCard = document.getElementById('new-game-card');
+        const loadGameCard = document.getElementById('load-game-card');
+        const backBtn = document.getElementById('back-btn');
+
+        // 새로 시작하기 클릭
+        newGameCard.addEventListener('click', () => {
+            mainSelection.style.display = 'none';
+            yearSelection.classList.add('active');
+        });
+
+        // 돌아가기 버튼
+        backBtn.addEventListener('click', () => {
+            yearSelection.classList.remove('active');
+            mainSelection.style.display = 'flex';
+        });
+
+        // 연도 선택
+        document.querySelectorAll('.year-card').forEach(card => {
+            card.addEventListener('click', async () => {
+                const year = parseInt(card.dataset.year);
+                yearSelection.classList.remove('active');
+                loading.classList.add('active');
+
+                try {
+                    const response = await fetch('/api/game/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            player_name: 'John Miller',
+                            campaign_year: year
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // 일기장 페이지로 이동 (프롤로그 확인)
+                        window.location.href = '/diary';
+                    } else {
+                        alert('게임 시작에 실패했습니다: ' + (data.detail || '알 수 없는 오류'));
+                        loading.classList.remove('active');
+                        yearSelection.classList.add('active');
+                    }
+                } catch (error) {
+                    console.error('게임 시작 실패:', error);
+                    alert('게임 시작에 실패했습니다. 다시 시도해주세요.');
+                    loading.classList.remove('active');
+                    yearSelection.classList.add('active');
+                }
+            });
+        });
+
+        // 불러오기 클릭
+        loadGameCard.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/game/state');
+                const data = await response.json();
+
+                if (data.success && data.game_state) {
+                    // 게임 플레이 페이지로 이동
+                    window.location.href = '/play';
+                } else {
+                    alert('저장된 게임이 없습니다. 새로 시작해주세요.');
+                }
+            } catch (error) {
+                console.error('게임 불러오기 실패:', error);
+                alert('게임을 불러오는데 실패했습니다.');
+            }
+        });
+    </script>
+</body>
+</html>
+

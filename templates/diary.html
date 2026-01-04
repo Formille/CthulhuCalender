@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일기장 - 365 어드벤처: 크툴루</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <style>
+        .diary-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .month-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .month-tab {
+            padding: 10px 20px;
+            background: rgba(139, 69, 19, 0.3);
+            border: 1px solid #8b4513;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .month-tab:hover,
+        .month-tab.active {
+            background: #8b4513;
+            color: #fff;
+        }
+        .diary-entries {
+            display: grid;
+            gap: 20px;
+        }
+        .diary-entry {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #444;
+        }
+        .entry-date {
+            font-size: 1.2em;
+            color: #d4af37;
+            font-weight: bold;
+        }
+        .tag.madness {
+            background: rgba(139, 0, 0, 0.5);
+            color: #ff0000;
+        }
+        .entry-content {
+            line-height: 1.8;
+            color: #e0e0e0;
+        }
+        .entry-content h1,
+        .entry-content h2,
+        .entry-content h3 {
+            color: #d4af37;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        .entry-content p {
+            margin-bottom: 1em;
+        }
+        .entry-content strong {
+            color: #fff;
+            font-weight: bold;
+        }
+        .entry-content em {
+            font-style: italic;
+            color: #d4af37;
+        }
+        .entry-content code {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .entry-content pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .entry-content blockquote {
+            border-left: 3px solid #d4af37;
+            padding-left: 15px;
+            margin-left: 0;
+            color: #ccc;
+            font-style: italic;
+        }
+        .chapter-summary {
+            background: rgba(212, 175, 55, 0.1);
+            border-left: 4px solid #d4af37;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        .month-conclusion-section {
+            margin-bottom: 20px;
+        }
+        .conclusion-button {
+            padding: 12px 24px;
+            background: rgba(212, 175, 55, 0.3);
+            border: 2px solid #d4af37;
+            border-radius: 5px;
+            color: #d4af37;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .conclusion-button:hover {
+            background: #d4af37;
+            color: #000;
+        }
+        .conclusion-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .conclusion-result {
+            background: rgba(212, 175, 55, 0.1);
+            border-left: 4px solid #d4af37;
+            padding: 20px;
+            margin-top: 20px;
+            line-height: 1.8;
+            color: #e0e0e0;
+        }
+        .conclusion-result h3 {
+            color: #d4af37;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>존 밀러의 일기장</h1>
+            <p class="subtitle"><!-- 계산 값 들어감--></p>
+            <!-- 네비게이션 -->
+            <nav class="main-nav">
+                <a href="/" class="nav-link">홈</a>
+                <a href="/play" class="nav-link">기록하기</a>
+                <a href="/diary" class="nav-link active">일기장</a>
+                <a href="/report" class="nav-link">보고서</a>
+            </nav>
+        </header>
+
+        <div class="diary-container">
+            <!-- 월별 탭 -->
+            <div class="month-tabs" id="month-tabs">
+                <!-- 동적으로 생성됨 -->
+            </div>
+
+            <!-- 챕터 요약 -->
+            <div id="chapter-summary" class="chapter-summary" style="display: none;"></div>
+
+            <!-- 월별 결산 버튼 -->
+            <div id="month-conclusion-section" class="month-conclusion-section" style="display: none;">
+                <button id="conclusion-button" class="conclusion-button">월의 이야기 결산</button>
+                <div id="conclusion-result" class="conclusion-result" style="display: none;"></div>
+            </div>
+
+            <!-- 일기 목록 -->
+            <div class="diary-entries" id="diary-entries">
+                <div class="loading">로딩 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let currentMonth = null;
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월',
+                           '7월', '8월', '9월', '10월', '11월', '12월'];
+
+        // 작은 크기의 크툴루 아이콘 로드 함수 (태그용)
+        async function loadCthulhuIconSmall(container) {
+            try {
+                const response = await fetch(`${API_BASE}/static/images/cthulhu.svg`);
+                const svgText = await response.text();
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svgElement = svgDoc.querySelector('svg');
+                if (svgElement) {
+                    svgElement.setAttribute('width', '20');
+                    svgElement.setAttribute('height', '20');
+                    svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
+                    const path = svgElement.querySelector('path');
+                    if (path) {
+                        path.setAttribute('fill', 'currentColor');
+                        path.setAttribute('stroke', 'currentColor');
+                    }
+                    container.innerHTML = '';
+                    container.appendChild(svgElement);
+                }
+            } catch (error) {
+                console.error('크툴루 아이콘 로드 실패:', error);
+                container.textContent = '🐙';
+            }
+        }
+
+        // 작은 크기의 조우 유형 아이콘 로드 함수 (태그용)
+        async function loadActionIconSmall(container, symbol) {
+            try {
+                let iconPath = '';
+                if (symbol === 'COMBAT') {
+                    iconPath = `${API_BASE}/static/images/pistol.svg`;
+                } else if (symbol === 'INVESTIGATION') {
+                    iconPath = `${API_BASE}/static/images/search.svg`;
+                } else if (symbol === 'SEARCH') {
+                    iconPath = `${API_BASE}/static/images/flashlight.svg`;
+                } else {
+                    return;
+                }
+                
+                const response = await fetch(iconPath);
+                const svgText = await response.text();
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svgElement = svgDoc.querySelector('svg');
+                if (svgElement) {
+                    svgElement.setAttribute('width', '20');
+                    svgElement.setAttribute('height', '20');
+                    svgElement.setAttribute('style', 'display: inline-block; vertical-align: middle;');
+                    const path = svgElement.querySelector('path');
+                    const circle = svgElement.querySelector('circle');
+                    const line = svgElement.querySelector('line');
+                    if (path) {
+                        path.setAttribute('fill', 'currentColor');
+                        path.setAttribute('stroke', 'currentColor');
+                    }
+                    if (circle) {
+                        circle.setAttribute('stroke', 'currentColor');
+                    }
+                    if (line) {
+                        line.setAttribute('stroke', 'currentColor');
+                    }
+                    container.innerHTML = '';
+                    container.appendChild(svgElement);
+                }
+            } catch (error) {
+                console.error('아이콘 로드 실패:', error);
+                // 폴백 이모지
+                const emojiMap = {
+                    'COMBAT': '🔫',
+                    'INVESTIGATION': '🔍',
+                    'SEARCH': '🔦'
+                };
+                container.textContent = emojiMap[symbol] || '❓';
+            }
+        }
+
+        // 마크다운을 HTML로 변환하는 함수
+        function renderMarkdown(markdownText) {
+            if (!markdownText) return '';
+            try {
+                // 이스케이프된 따옴표를 일반 따옴표로 변환 (JSON에서 온 경우)
+                let processedText = markdownText.replace(/\\"/g, '"');
+                
+                // 따옴표가 포함된 마크다운 패턴을 먼저 처리
+                // *"텍스트"* 패턴을 *텍스트*로 변환 (따옴표 제거)
+                processedText = processedText.replace(/\*"([^"]+)"\*/g, '*$1*');
+                
+                // marked.js를 사용하여 마크다운을 HTML로 변환
+                if (typeof marked !== 'undefined') {
+                    // marked.js 옵션 설정 (breaks: true로 줄바꿈 처리)
+                    const markedOptions = {
+                        breaks: true,
+                        gfm: true
+                    };
+                    let html = marked.parse(processedText, markedOptions);
+                    return html;
+                } else {
+                    // marked.js가 로드되지 않은 경우 기본 변환
+                    return processedText
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>')
+                        .replace(/\n/g, '<br>');
+                }
+            } catch (error) {
+                console.error('마크다운 변환 오류:', error);
+                // 오류 발생 시 기본 변환 시도
+                let fallbackText = markdownText.replace(/\\"/g, '"');
+                return fallbackText
+                    .replace(/\*"([^"]+)"\*/g, '<em>$1</em>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*([^*\n]+?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+            }
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCampaignYear();
+            await loadAllChapters();
+        });
+
+        // 캠페인 연도 로드
+        async function loadCampaignYear() {
+            const response = await fetch(`${API_BASE}/api/game/state`);
+            const data = await response.json();
+
+            if (data.success) {
+                const subtitle = document.querySelector('.subtitle');
+                if (subtitle) {
+                    const campaignYear = data.campaign_year || 1926;
+                    subtitle.textContent = `${campaignYear}년의 기록`;
+                }
+            }
+        }
+
+        // 모든 챕터 로드
+        async function loadAllChapters() {
+            try {
+                const response = await fetch(`${API_BASE}/api/narrative/all-chapters`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const monthTabs = document.getElementById('month-tabs');
+                    monthTabs.innerHTML = '';
+                    
+                    if (data.chapters.length === 0) {
+                        document.getElementById('diary-entries').innerHTML = 
+                            '<div class="error">아직 작성된 일기가 없습니다.</div>';
+                        return;
+                    }
+                    
+                    // 프롤로그와 일반 챕터 분리
+                    const prologueChapter = data.chapters.find(c => c.is_prologue);
+                    const regularChapters = data.chapters.filter(c => !c.is_prologue);
+                    
+                    // 일반 챕터를 역순으로 정렬 (최신월이 앞에 오도록)
+                    const sortedChapters = [...regularChapters].reverse();
+                    
+                    // 첫 번째 월을 기본으로 선택 (최신월 또는 프롤로그)
+                    if (sortedChapters.length > 0) {
+                        currentMonth = sortedChapters[0].month;
+                    } else if (prologueChapter) {
+                        currentMonth = 'Prologue';
+                    }
+                    
+                    // 일반 챕터 탭 추가 (최신월부터)
+                    sortedChapters.forEach(chapter => {
+                        const tab = document.createElement('div');
+                        tab.className = 'month-tab';
+                        tab.textContent = getMonthName(chapter.month);
+                        tab.dataset.month = chapter.month;
+                        
+                        if (chapter.month === currentMonth) {
+                            tab.classList.add('active');
+                        }
+                        
+                        tab.addEventListener('click', () => loadMonth(chapter.month));
+                        monthTabs.appendChild(tab);
+                    });
+                    
+                    // 프롤로그 탭 추가 (맨 오른쪽)
+                    if (prologueChapter) {
+                        const tab = document.createElement('div');
+                        tab.className = 'month-tab';
+                        tab.textContent = '프롤로그';
+                        tab.dataset.month = 'Prologue';
+                        
+                        if (currentMonth === 'Prologue') {
+                            tab.classList.add('active');
+                        }
+                        
+                        tab.addEventListener('click', () => loadPrologue());
+                        monthTabs.appendChild(tab);
+                    }
+                    
+                    // 가장 최신 월의 일기를 먼저 표시
+                    if (sortedChapters.length > 0) {
+                        await loadMonth(currentMonth);
+                    } else if (prologueChapter) {
+                        // 월이 없고 프롤로그만 있는 경우에만 프롤로그 표시
+                        currentMonth = 'Prologue';
+                        await loadPrologue();
+                    }
+                }
+            } catch (error) {
+                console.error('챕터 로드 실패:', error);
+                document.getElementById('diary-entries').innerHTML = 
+                    '<div class="error">일기를 불러오는 중 오류가 발생했습니다.</div>';
+            }
+        }
+
+        // 월별 일기 로드
+        async function loadMonth(month) {
+            currentMonth = month;
+            
+            // 탭 활성화
+            document.querySelectorAll('.month-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.month === month);
+            });
+            
+            // 결산 섹션 숨기기
+            document.getElementById('month-conclusion-section').style.display = 'none';
+            document.getElementById('conclusion-result').style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/narrative/month/${month}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 챕터 요약 숨기기 (결산이 있으면 일기 엔트리로 표시)
+                    const summaryDiv = document.getElementById('chapter-summary');
+                    summaryDiv.style.display = 'none';
+                    
+                    // 완료 상태 확인
+                    let isCompleted = false;
+                    try {
+                        const completionResponse = await fetch(`${API_BASE}/api/narrative/month/${month}/completion-status`);
+                        const completionData = await completionResponse.json();
+                        isCompleted = completionData.success && completionData.is_completed;
+                        
+                        if (isCompleted) {
+                            // 완료된 경우 결산 버튼 표시 (결산이 없을 때만)
+                            if (!data.chapter_summary) {
+                                const conclusionSection = document.getElementById('month-conclusion-section');
+                                const conclusionButton = document.getElementById('conclusion-button');
+                                conclusionButton.textContent = `${getMonthName(month)}의 이야기 결산`;
+                                conclusionButton.dataset.month = month;
+                                conclusionSection.style.display = 'block';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('완료 상태 확인 실패:', error);
+                    }
+                    
+                    // 일기 목록 표시
+                    const entriesDiv = document.getElementById('diary-entries');
+                    entriesDiv.innerHTML = '';
+                    
+                    // 결산이 있으면 일기 엔트리 스타일로 표시
+                    if (data.chapter_summary) {
+                        const conclusionEntry = document.createElement('div');
+                        conclusionEntry.className = 'diary-entry';
+                        
+                        const header = document.createElement('div');
+                        header.className = 'entry-header';
+                        
+                        const dateSpan = document.createElement('div');
+                        dateSpan.className = 'entry-date';
+                        dateSpan.textContent = `${getMonthName(month)}의 이야기 결산`;
+                        header.appendChild(dateSpan);
+                        
+                        const tagsDiv = document.createElement('div');
+                        tagsDiv.className = 'entry-tags';
+                        const conclusionTag = document.createElement('span');
+                        conclusionTag.className = 'tag';
+                        conclusionTag.textContent = '결산';
+                        tagsDiv.appendChild(conclusionTag);
+                        header.appendChild(tagsDiv);
+                        
+                        const content = document.createElement('div');
+                        content.className = 'entry-content';
+                        content.innerHTML = renderMarkdown(data.chapter_summary);
+                        
+                        conclusionEntry.appendChild(header);
+                        conclusionEntry.appendChild(content);
+                        entriesDiv.appendChild(conclusionEntry);
+                    }
+                    
+                    if (data.entries.length === 0) {
+                        if (!data.chapter_summary) {
+                            entriesDiv.innerHTML = '<div class="error">이 달에는 작성된 일기가 없습니다.</div>';
+                        }
+                        return;
+                    }
+                    
+                    // 일기를 날짜 기준 역순으로 정렬 (최신 일기가 위에 오도록)
+                    const sortedEntries = [...data.entries].sort((a, b) => {
+                        const dateA = new Date(a.diary_write_date);
+                        const dateB = new Date(b.diary_write_date);
+                        return dateB - dateA; // 최신 날짜가 앞에 오도록
+                    });
+                    
+                    sortedEntries.forEach(entry => {
+                        const entryDiv = document.createElement('div');
+                        entryDiv.className = 'diary-entry';
+                        
+                        const header = document.createElement('div');
+                        header.className = 'entry-header';
+                        
+                        const dateSpan = document.createElement('div');
+                        dateSpan.className = 'entry-date';
+                        dateSpan.textContent = `${entry.diary_write_date} (${entry.day_of_week})`;
+                        
+                        const tagsDiv = document.createElement('div');
+                        tagsDiv.className = 'entry-tags';
+                        
+                        // 성공/실패 태그
+                        const successTag = document.createElement('span');
+                        successTag.className = `tag ${entry.is_success ? 'success' : 'failure'}`;
+                        successTag.textContent = entry.is_success ? '성공' : '실패';
+                        tagsDiv.appendChild(successTag);
+                        
+                        // 조우 유형 아이콘 태그
+                        if (entry.action_type) {
+                            const actionTag = document.createElement('span');
+                            actionTag.className = 'tag';
+                            const actionIconContainer = document.createElement('span');
+                            actionIconContainer.className = 'tag-icon';
+                            loadActionIconSmall(actionIconContainer, entry.action_type);
+                            actionTag.appendChild(actionIconContainer);
+                            tagsDiv.appendChild(actionTag);
+                        }
+                        
+                        // 주사위 수 태그
+                        if (entry.dice_sum !== undefined && entry.dice_sum > 0) {
+                            const diceTag = document.createElement('span');
+                            diceTag.className = 'tag';
+                            diceTag.textContent = `${entry.dice_sum}`;
+                            tagsDiv.appendChild(diceTag);
+                        }
+                        
+                        // 광기 수만큼 크툴루 아이콘 표시
+                        if (entry.cthulhu_symbol_count && entry.cthulhu_symbol_count > 0) {
+                            for (let i = 0; i < entry.cthulhu_symbol_count; i++) {
+                                const cthulhuTag = document.createElement('span');
+                                cthulhuTag.className = 'tag cthulhu-tag';
+                                const cthulhuIconContainer = document.createElement('span');
+                                cthulhuIconContainer.className = 'cthulhu-icon-small';
+                                loadCthulhuIconSmall(cthulhuIconContainer);
+                                cthulhuTag.appendChild(cthulhuIconContainer);
+                                tagsDiv.appendChild(cthulhuTag);
+                            }
+                        }
+                        
+                        header.appendChild(dateSpan);
+                        header.appendChild(tagsDiv);
+                        
+                        const content = document.createElement('div');
+                        content.className = 'entry-content';
+                        // 전체 텍스트가 있으면 전체 텍스트 표시, 없으면 요약 표시
+                        const markdownText = entry.full_text || entry.summary || '(내용 없음)';
+                        content.innerHTML = renderMarkdown(markdownText);
+                        
+                        entryDiv.appendChild(header);
+                        entryDiv.appendChild(content);
+                        
+                        entriesDiv.appendChild(entryDiv);
+                    });
+                }
+            } catch (error) {
+                console.error('월별 일기 로드 실패:', error);
+                document.getElementById('diary-entries').innerHTML = 
+                    '<div class="error">일기를 불러오는 중 오류가 발생했습니다.</div>';
+            }
+        }
+
+        // 프롤로그 로드
+        async function loadPrologue() {
+            currentMonth = 'Prologue';
+            
+            // 탭 활성화
+            document.querySelectorAll('.month-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.month === 'Prologue');
+            });
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/narrative/prologue`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 챕터 요약 숨기기
+                    document.getElementById('chapter-summary').style.display = 'none';
+                    
+                    // 일기 목록 표시
+                    const entriesDiv = document.getElementById('diary-entries');
+                    entriesDiv.innerHTML = '';
+                    
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'diary-entry';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'entry-header';
+                    
+                    const dateSpan = document.createElement('div');
+                    dateSpan.className = 'entry-date';
+                    dateSpan.textContent = `프롤로그 - ${data.prologue.date}`;
+                    
+                    header.appendChild(dateSpan);
+                    
+                    const content = document.createElement('div');
+                    content.className = 'entry-content';
+                    content.innerHTML = renderMarkdown(data.prologue.content);
+                    
+                    entryDiv.appendChild(header);
+                    entryDiv.appendChild(content);
+                    
+                    entriesDiv.appendChild(entryDiv);
+                }
+            } catch (error) {
+                console.error('프롤로그 로드 실패:', error);
+                document.getElementById('diary-entries').innerHTML = 
+                    '<div class="error">프롤로그를 불러오는 중 오류가 발생했습니다.</div>';
+            }
+        }
+
+        function getMonthName(month) {
+            const index = months.indexOf(month);
+            return index !== -1 ? monthNames[index] : month;
+        }
+
+        // 결산 버튼 클릭 이벤트
+        document.addEventListener('DOMContentLoaded', () => {
+            const conclusionButton = document.getElementById('conclusion-button');
+            if (conclusionButton) {
+                conclusionButton.addEventListener('click', async function() {
+                    const month = this.dataset.month;
+                    if (!month) return;
+                    
+                    // 버튼 비활성화
+                    this.disabled = true;
+                    this.textContent = '결산 생성 중...';
+                    
+                    try {
+                        const response = await fetch(`${API_BASE}/api/game/month-conclusion`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ month: month })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            // 결산 버튼 숨기기
+                            document.getElementById('month-conclusion-section').style.display = 'none';
+                            
+                            // 페이지 새로고침하여 결산 결과를 일기 엔트리로 표시
+                            await loadMonth(month);
+                        } else {
+                            alert('결산 생성에 실패했습니다.');
+                            this.disabled = false;
+                            this.textContent = `${getMonthName(month)}의 이야기 결산`;
+                        }
+                    } catch (error) {
+                        console.error('결산 생성 실패:', error);
+                        alert('결산 생성 중 오류가 발생했습니다.');
+                        this.disabled = false;
+                        this.textContent = `${getMonthName(month)}의 이야기 결산`;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+

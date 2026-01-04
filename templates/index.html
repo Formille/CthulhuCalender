@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>365 어드벤처: 크툴루</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>365 어드벤처: 크툴루</h1>
+            <p class="subtitle">1926년 아컴의 그림자</p>
+            <!-- 네비게이션 -->
+            <nav class="main-nav">
+                <a href="/" class="nav-link">홈</a>
+                <a href="/play" class="nav-link active">기록하기</a>
+                <a href="/diary" class="nav-link">일기장</a>
+                <a href="/report" class="nav-link">보고서</a>
+            </nav>
+        </header>
+
+        <!-- 게임 상태 표시 -->
+        <div class="game-status">
+            <div class="status-item">
+                <label>현재 날짜:</label>
+                <span id="current-date">1926-01-01</span>
+            </div>
+            <div class="status-item">
+                <label>광기 수치:</label>
+                <div class="madness-bar">
+                    <div class="madness-fill" id="madness-fill"></div>
+                    <span id="madness-level" class="madness-level">0</span>
+                </div>
+            </div>
+            <div class="status-item">
+                <label>주간 성공 횟수:</label>
+                <span id="weekly-success">0</span>
+            </div>
+        </div>
+
+        <!-- 게임 시작 선택 영역 -->
+        <div id="start-section" class="start-section">
+        </div>
+
+        <!-- 프롤로그 영역 -->
+        <div id="prologue-section" class="prologue-section" style="display: none;">
+            <div class="prologue-content">
+                <h2>프롤로그</h2>
+                <div id="prologue-text"></div>
+                <button id="start-game-btn" class="btn btn-primary">게임 시작</button>
+            </div>
+        </div>
+
+        <!-- 메인 게임 영역 -->
+        <div id="game-section" class="game-section" style="display: none;">
+            <!-- 월간 달력 -->
+            <h2 id="current-month-name"></h2>
+            <div class="calendar-month">
+                <div class="month-grid" id="month-grid">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+            </div>
+            <!-- 조우 선택 영역 -->
+            <div class="encounter-selection" style="display: none;">
+                <h2>조우 선택</h2>
+                <div id="encounter-form">
+                    <!-- 숨겨진 날짜 입력 필드 (달력 클릭으로만 설정) -->
+                    <input type="hidden" id="target-date-hidden">
+                    <div class="form-group">
+                        <label>대상 묘사:</label>
+                        <input type="text" id="visual-description" placeholder="예: 검은 고양이" required>
+                    </div>
+                    <div class="form-group">
+                        <label>필요한 행동:</label>
+                        <select id="required-symbol" required>
+                            <option value="COMBAT">권총 (전투)</option>
+                            <option value="INVESTIGATION">돋보기 (조사)</option>
+                            <option value="SEARCH">손전등 (수색)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>기본 난이도:</label>
+                        <input type="number" id="base-difficulty" min="5" max="20" value="10" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 주사위 굴리기 -->
+            <h2>모험 진행</h2>
+            <div class="dice-controls">
+                <div class="dice-group">
+                    <!-- 검은 주사위 -->
+                    <div class="slider-container">
+                        <div class="wheel-picker">
+                            <div class="wheel-picker-wrapper">
+                                <div class="wheel-picker-items" id="wheel-picker-items"></div>
+                                <div class="wheel-picker-selection"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="black-dice-sum-value" value="9">
+                    </div>
+                </div>
+                <div class="dice-group">
+                    <label>광기 체크</label>
+                    <div class="cthulhu-button-container">
+                        <button type="button" id="cthulhu-count-btn" class="cthulhu-button" title="클릭 시 광기 수가 변경됩니다.">
+                            <span class="icon-container cthulhu-icon"></span>
+                            <span id="cthulhu-count-display" class="cthulhu-count-display">0</span>
+                        </button>
+                        <input type="hidden" id="cthulhu-count" value="0" required>
+                    </div>
+                </div>
+                <div class="dice-group">
+                    <label>조우 유형</label>
+                    <div class="green-dice-icons">
+                        <button type="button" class="icon-button" data-symbol="COMBAT" title="권총">
+                            <span class="icon-container"></span>
+                        </button>
+                        <button type="button" class="icon-button" data-symbol="INVESTIGATION" title="돋보기">
+                            <span class="icon-container"></span>
+                        </button>
+                        <button type="button" class="icon-button" data-symbol="SEARCH" title="손전등">
+                            <span class="icon-container"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 주간 달력 -->
+            <div class="calendar-week">
+                <h2>금주의 조우 기록</h2>
+                <div class="week-grid" id="week-grid">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+            </div>
+
+            
+            <button id="roll-dice-btn" class="btn btn-primary">일기장 읽기</button>
+
+            <!-- 스토리 표시 영역 -->
+            <div id="story-section" class="story-section" style="display: none;">
+                <h2>존 밀러의 일기</h2>
+                <div class="entry-tags" id="story-entry-tags"></div>
+                <div class="story-content" id="story-content"></div>
+                <div class="story-summary" id="story-summary"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+

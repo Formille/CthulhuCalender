@@ -1,0 +1,418 @@
+{
+  "description": "각 월일별 조우 선택 데이터",
+  "encounters": {
+    "01-01": {
+      "date": "1월 1일",
+      "visual_description": "총을 든 노파",
+      "required_action": 2,
+      "base_difficulty": 8,
+      "with_madness": 0
+    },
+    "01-02": {
+      "date": "1월 2일",
+      "visual_description": "지저분한 검은 고양이",
+      "required_action": 3,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "01-03": {
+      "date": "1월 3일",
+      "visual_description": "거대한 박쥐",
+      "required_action": 1,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "01-04": {
+      "date": "1월 4일",
+      "visual_description": "석궁을 든 헌터. 적대적이지 않다. 긴 갈색 코트, 파란 셔츠, 녹색 스카프를 착용하고 있다.",
+      "required_action": 2,
+      "base_difficulty": 13,
+      "with_madness": 0
+    },
+    "01-05": {
+      "date": "1월 5일",
+      "visual_description": "두려움에 떠는 안경을 낀 중년 선생. 한 팔에 각종 책과 두루마리를 끼고 있다.",
+      "required_action": 2,
+      "base_difficulty": 9,
+      "with_madness": 0
+    },
+    "01-06": {
+      "date": "1월 6일",
+      "visual_description": "머리가 둘 달린 뱀",
+      "required_action": 1,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-07": {
+      "date": "1월 7일",
+      "visual_description": "죽었지만 움직이는 갈색 개",
+      "required_action": 1,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "01-08": {
+      "date": "1월 8일",
+      "visual_description": "주술에 심취한 여학생",
+      "required_action": 2,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-09": {
+      "date": "1월 9일",
+      "visual_description": "검은 로브를 입은 교단의 광신도. 붉은 책을 들고 있다.",
+      "required_action": 1,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "01-10": {
+      "date": "1월 10일",
+      "visual_description": "총명해보이는 부엉이",
+      "required_action": 3,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-11": {
+      "date": "1월 11일",
+      "visual_description": "한 손이 이상하게 변한 수상한 남자. 분노에 찬 표정이다. 적갈색 로브를 입고 있으며 다리 한 쪽 또한 축축하고 이상하게 변해 있다.",
+      "required_action": 3,
+      "base_difficulty": 17,
+      "with_madness": 0
+    },
+    "01-12": {
+      "date": "1월 12일",
+      "visual_description": "공중에 부양한 한 여자. 푸른 드레스를 입고 멍하니 하늘을 바라보며 떠있다.",
+      "required_action": 3,
+      "base_difficulty": 8,
+      "with_madness": 0
+    },
+    "01-13": {
+      "date": "1월 13일",
+      "visual_description": "눈이 빛나는 검은 고양이. 영험해 보이는 분위기가 느껴진다.",
+      "required_action": 3,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "01-14": {
+      "date": "1월 14일",
+      "visual_description": "아컴 시티의 경찰관. 한 손에는 총을 쓰고 담배를 물고 있다.",
+      "required_action": 2,
+      "base_difficulty": 9,
+      "with_madness": 0
+    },
+    "01-15": {
+      "date": "1월 15일",
+      "visual_description": "붉은 반점이 난 더러운 쥐. 이빨이 매우 날카롭다.",
+      "required_action": 1,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-16": {
+      "date": "1월 16일",
+      "visual_description": "거대한 박쥐",
+      "required_action": 1,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "01-17": {
+      "date": "1월 17일",
+      "visual_description": "험상궂은 마담. 값비싼 장신구를 치렁치렁 달고, 손에 주술 문양이 있다. ",
+      "required_action": 2,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "01-18": {
+      "date": "1월 18일",
+      "visual_description": "부정형의 점액질과 살덩어리를 가진 괴물. 수많은 노란 눈이 불규칙하게 박혀있으며, 칙칙한 적갈색의 일부 보라색 과 푸른색으로 얼룩덜룩하다. 여러 크고 작은 촉수가 뻗어있거나 얽혀있다. 여러 얼굴 형태에는 날카로운 이빨이 드러나 있다.",
+      "required_action": 1,
+      "base_difficulty": 18,
+      "with_madness": 0
+    },
+    "01-19": {
+      "date": "1월 19일",
+      "visual_description": "거대한 박쥐",
+      "required_action": 1,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-20": {
+      "date": "1월 20일",
+      "visual_description": "검고 짙은 망토와 끝이 뾰족한 후드를 쓰고 있는 광신도. 손에는 수상한 주황 표지 책을 들고 있다.",
+      "required_action": 3,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "01-21": {
+      "date": "1월 21일",
+      "visual_description": "헝클어진 회색 머리, 주름진 얼굴, 낡은 갈색 드레스와 보라색 망토를 한 늙은 여자 노인. 발 아래에는 뱀과 두꺼비가 있다. 허리춤에는 주황색 주머니가 눈에 띈다.",
+      "required_action": 3,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "01-22": {
+      "date": "1월 22일",
+      "visual_description": "카삭을 입은 성직자. 대머리, 주름이 많고 한 손에는 십자가를 들고 있다. 근심하는 듯 찌푸린 표정이다.",
+      "required_action": 2,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "01-23": {
+      "date": "1월 23일",
+      "visual_description": "머리가 둘 달린 뱀. 이전에 봤던 녹색 뱀과 다르게 누런 색이다.",
+      "required_action": 1,
+      "base_difficulty": 13,
+      "with_madness": 0
+    },
+    "01-24": {
+      "date": "1월 24일",
+      "visual_description": "지저분한 검은 고양이. 눈이 빨갛다.",
+      "required_action": 3,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-25": {
+      "date": "1월 25일",
+      "visual_description": "파란 조끼를 입고 짙은 남색의 치마를 입은 부두교에 심취한 듯한 여자. 검은 곱슬머리와 창백하게 해골 모양으로 화장한 피부. 입과 눈 주위에 짙은 화장으로 섬뜩하다. 깃털과 작은 해골 장식이 달린 모자를 쓰고 있으며, 오른손에는 흰 부두 인형을 들고 있다.",
+      "required_action": 2,
+      "base_difficulty": 17,
+      "with_madness": 0
+    },
+    "01-26": {
+      "date": "1월 26일",
+      "visual_description": "대학의 연구원. 흰색 가운을 입고 안경을 쓰고 곱슬머리를 하나로 묶은 모습. 손에는 클립보드를 들고 있다. 결연에 찬 모습",
+      "required_action": 2,
+      "base_difficulty": 13,
+      "with_madness": 0
+    },
+    "01-27": {
+      "date": "1월 27일",
+      "visual_description": "험상궂은 마담. 값비싼 장신구를 치렁치렁 달고, 손에 주술 문양이 있다. 이전에 봤던 분이랑 익숙하다.",
+      "required_action": 2,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-28": {
+      "date": "1월 28일",
+      "visual_description": "녹색 반점을 가진 더러운 쥐. 이빨이 매우 날카롭다.",
+      "required_action": 1,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "01-29": {
+      "date": "1월 29일",
+      "visual_description": "눈이 빛나는 검은 고양이. 영험해 보이는 분위기가 느껴진다.",
+      "required_action": 3,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "01-30": {
+      "date": "1월 30일",
+      "visual_description": "갈색 후드가 달린 로브를 입은 여자 아이. 갈색머리를 가졌다. 어딘가 총명해 보인다.",
+      "required_action": 2,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "01-31": {
+      "date": "1월 31일",
+      "visual_description": "아컴 시티의 경찰관. 한 손에는 총을 쓰고 담배를 물고 있다.",
+      "required_action": 2,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "02-01": {
+      "date": "2월 1일",
+      "visual_description": "피부가 푸르고 검은색의 짧고 삐죽한 머리카락을 가진, 사람과 비슷한 형상을 한 생명체. 갈색 바지와 주황색 조끼만 입고 있다. 그가 연주하는 리라에서 신비한 빛이 나고 있다.",
+      "required_action": 2,
+      "base_difficulty": 14,
+      "with_madness": 0
+    },
+    "02-02": {
+      "date": "2월 2일",
+      "visual_description": "마치 그림자와 같이 검은 형상을 가진, 인간과 유사한 모습의 것. 흰 연기가 둘러져 있고, 다리가 연기처럼 흐느적 거린다. 빛나는 눈을 가지고 있다.",
+      "required_action": 3,
+      "base_difficulty": 7,
+      "with_madness": 2
+    },
+    "02-03": {
+      "date": "2월 3일",
+      "visual_description": "검은 로브를 입은 교단의 광신도. 주황색 책을 들고 있다.",
+      "required_action": 2,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "02-04": {
+      "date": "2월 4일",
+      "visual_description": "머리가 둘 달린 뱀",
+      "required_action": 1,
+      "base_difficulty": 9,
+      "with_madness": 0
+    },
+    "02-05": {
+      "date": "2월 5일",
+      "visual_description": "회색 머리와 덥수룩한 턱수염을 가진 남성. 한 손엔 긴 지팡이를 짚고 있다. 자주색 셔츠와 검은색 망토를 걸치고 있다. 은둔자와 같은 자유로운 모습이다.",
+      "required_action": 2,
+      "base_difficulty": 13,
+      "with_madness": 0
+    },
+    "02-06": {
+      "date": "2월 6일",
+      "visual_description": "눈이 빛나는 검은 고양이. 영험해 보이는 분위기가 느껴진다.",
+      "required_action": 3,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "02-07": {
+      "date": "2월 7일",
+      "visual_description": "헝클어진 회색 머리, 주름진 얼굴, 낡은 갈색 드레스와 보라색 망토를 한 늙은 여자 노인. 발 아래에는 뱀과 두꺼비가 있다. 허리춤에는 주황색 주머니가 눈에 띈다.",
+      "required_action": 3,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "02-08": {
+      "date": "2월 8일",
+      "visual_description": "파란색 베레모를 쓰고 끝이 뾰족한 신발을 착용한 파란색 상하의에 자주색 겉옷을 입은 남자. 흰색 턱수염과 콧구염이 풍성하며 눈을 크게 뜨고 있다.양손으로로 단단히 책을 잡고 있으며 긴장한 듯 하다.",
+      "required_action": 3,
+      "base_difficulty": 18,
+      "with_madness": 0
+    },
+    "02-09": {
+      "date": "2월 9일",
+      "visual_description": "주술에 심취한 여학생. 양손을 관자놀이에 대고 심각한 표정으로 눈을 감고 있다.",
+      "required_action": 2,
+      "base_difficulty": 9,
+      "with_madness": 0
+    },
+    "02-10": {
+      "date": "2월 10일",
+      "visual_description": "거대한 박쥐",
+      "required_action": 1,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "02-11": {
+      "date": "2월 11일",
+      "visual_description": "아컴 시티의 경찰관. 한 손에는 총을 쓰고 담배를 물고 있다.",
+      "required_action": 2,
+      "base_difficulty": 10,
+      "with_madness": 0
+    },
+    "02-12": {
+      "date": "2월 12일",
+      "visual_description": "녹색 반점이 난 더러운 쥐. 이빨이 매우 날카롭다.",
+      "required_action": 1,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "02-13": {
+      "date": "2월 13일",
+      "visual_description": "그림자같이 검고 거대한 게 형상의 괴물. 턱이 날카롭다.",
+      "required_action": 1,
+      "base_difficulty": 9,
+      "with_madness": 2
+    },
+    "02-14": {
+      "date": "2월 14일",
+      "visual_description": "험상궂은 마담. 값비싼 장신구를 치렁치렁 달고, 손에 주술 문양이 있다. ",
+      "required_action": 2,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "02-15": {
+      "date": "2월 15일",
+      "visual_description": "파란 조끼를 입고 짙은 남색의 치마를 입은 부두교에 심취한 듯한 여자. 검은 곱슬머리와 창백하게 해골 모양으로 화장한 피부. 입과 눈 주위에 짙은 화장으로 섬뜩하다. 깃털과 작은 해골 장식이 달린 모자를 쓰고 있으며, 오른손에는 흰 부두 인형을 들고 있다. 저번 달에 만났던 그 사람이다!",
+      "required_action": 2,
+      "base_difficulty": 17,
+      "with_madness": 0
+    },
+    "02-16": {
+      "date": "2월 16일",
+      "visual_description": "머리가 둘 달린 뱀. 이전에 봤던 녹색 뱀이다.",
+      "required_action": 1,
+      "base_difficulty": 5,
+      "with_madness": 4
+    },
+    "02-17": {
+      "date": "2월 17일",
+      "visual_description": "대학의 연구원. 흰색 가운을 입고 안경을 쓰고 곱슬머리를 하나로 묶은 모습. 손에는 클립보드를 들고 있다. 결연에 찬 모습. 이전에 만났었던 기억이 있다.",
+      "required_action": 2,
+      "base_difficulty": 8,
+      "with_madness": 0
+    },
+    "02-18": {
+      "date": "2월 18일",
+      "visual_description": "1월 말에 만났던, 갈색 후드가 달린 로브를 입은 여자 아이. 갈색머리를 가졌다. 어딘가 총명해 보인다.",
+      "required_action": 2,
+      "base_difficulty": 13,
+      "with_madness": 0
+    },
+    "02-19": {
+      "date": "2월 19일",
+      "visual_description": "총명해보이는 부엉이. 다시 나에게 온 이유가 있을까?",
+      "required_action": 3,
+      "base_difficulty": 7,
+      "with_madness": 0
+    },
+    "02-20": {
+      "date": "2월 20일",
+      "visual_description": "붉은 반점이 난 더러운 쥐. 이빨이 매우 날카롭다.",
+      "required_action": 1,
+      "base_difficulty": 9,
+      "with_madness": 0
+    },
+    "02-21": {
+      "date": "2월 21일",
+      "visual_description": "죽어있는 갈색 개. 다리 한 쪽엔 앙상한 뼈가 보인다.",
+      "required_action": 1,
+      "base_difficulty": 13,
+      "with_madness": 0
+    },
+    "02-22": {
+      "date": "2월 22일",
+      "visual_description": "전체적으로 어두운 녹색 피부를 가진 이 기괴한 존재는 인간의 형상을 모방한 듯 길쭉한 실루엣을 자랑했다. 그 불분명한 머리와 등 뒤로는 뱀처럼 꿈틀대는 여러 가닥의 촉수가 엉켜 있었고, 척추를 따라서는 섬뜩한 노란색 돌기들이 박혀 있었다. 길게 늘어진 팔은 손목 아래로 검은색과 보라색이 뒤섞인 거대한 발톱으로 변해 있었으며, 땅을 딛고 선 가늘고 긴 다리는 발목 부근에 작은 혹들이 돋아 있었다. 그 넓적한 발은 조용히 저편의 어둠 속으로 걸어 들어갈 준비를 마친 듯했다.",
+      "required_action": 1,
+      "base_difficulty": 19,
+      "with_madness": 5
+    },
+    "02-23": {
+      "date": "2월 23일",
+      "visual_description": "",
+      "required_action": 1,
+      "base_difficulty": 12,
+      "with_madness": 0
+    },
+    "02-24": {
+      "date": "2월 24일",
+      "visual_description": "",
+      "required_action": 3,
+      "base_difficulty": 11,
+      "with_madness": 0
+    },
+    "02-25": {
+      "date": "2월 25일",
+      "visual_description": "",
+      "required_action": 2,
+      "base_difficulty": 6,
+      "with_madness": 5
+    },
+    "02-26": {
+      "date": "2월 26일",
+      "visual_description": "",
+      "required_action": 1,
+      "base_difficulty": 8,
+      "with_madness": 0
+    },
+    "02-27": {
+      "date": "2월 27일",
+      "visual_description": "",
+      "required_action": 2,
+      "base_difficulty": 13,
+      "with_madness": 0
+    },
+    "02-28": {
+      "date": "2월 28일",
+      "visual_description": "",
+      "required_action": 1,
+      "base_difficulty": 5,
+      "with_madness": 0
+    }
+  }
+}
