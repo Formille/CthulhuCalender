@@ -719,7 +719,64 @@ async function loadActiveSlot() {
 }
 
 /**
- * 슬롯을 파일로 내보내기 (기존 StorageModule API 호환)
+ * 일지 날짜 기준으로 백업 파일명 생성
+ * @param {string} latestDiaryDate - 최신 일지 날짜 (YYYY-MM-DD 형식)
+ * @returns {string} 파일명 (diary_until_{month}_{day}.json)
+ */
+function generateBackupFileName(latestDiaryDate) {
+    if (!latestDiaryDate) {
+        return 'diary_until_unknown.json';
+    }
+    
+    try {
+        const date = new Date(latestDiaryDate);
+        const month = date.getMonth() + 1; // 0-based이므로 +1
+        const day = date.getDate();
+        return `diary_until_${month}_${day}.json`;
+    } catch (error) {
+        if (window.DebugLogger) {
+            window.DebugLogger.warn('날짜 파싱 실패, 기본 파일명 사용', { latestDiaryDate, error });
+        }
+        return 'diary_until_unknown.json';
+    }
+}
+
+/**
+ * IndexedDB의 모든 원시 데이터를 가져오기
+ * @param {string} slotId - 슬롯 ID
+ * @returns {Object} IndexedDB의 모든 테이블 데이터를 포함한 객체
+ */
+async function getAllIndexedDBData(slotId) {
+    if (!db || !db.isOpen()) {
+        await initDexieDB();
+    }
+
+    try {
+        // 모든 테이블에서 해당 slotId의 데이터 가져오기
+        const gameInfo = await db.gameInfo.get(slotId);
+        const weeklyLogs = await db.weeklyLogs.where('slotId').equals(slotId).toArray();
+        const dailyLogs = await db.dailyLogs.where('slotId').equals(slotId).toArray();
+        const monthlyChapters = await db.monthlyChapters.where('slotId').equals(slotId).toArray();
+        const prologue = await db.prologue.get(`${slotId}_prologue`);
+
+        return {
+            gameInfo: gameInfo || null,
+            weeklyLogs: weeklyLogs || [],
+            dailyLogs: dailyLogs || [],
+            monthlyChapters: monthlyChapters || [],
+            prologue: prologue || null
+        };
+    } catch (error) {
+        if (window.DebugLogger) {
+            window.DebugLogger.error('getAllIndexedDBData 실패', error);
+        }
+        console.error('getAllIndexedDBData 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 슬롯을 파일로 내보내기 (IndexedDB의 모든 원시 데이터 포함)
  */
 async function exportSlotAsFile(slotId) {
     const startTime = Date.now();
@@ -728,17 +785,35 @@ async function exportSlotAsFile(slotId) {
     }
 
     try {
-        const gameData = await getSaveSlot(slotId);
-        if (!gameData) {
+        if (!db || !db.isOpen()) {
+            await initDexieDB();
+        }
+
+        // IndexedDB의 모든 원시 데이터 가져오기
+        const indexedDBData = await getAllIndexedDBData(slotId);
+        
+        if (!indexedDBData.gameInfo) {
             throw new Error(`슬롯을 찾을 수 없습니다: ${slotId}`);
         }
 
-        const jsonStr = JSON.stringify(gameData, null, 2);
+        // 최신 일지 날짜 가져오기
+        const latestDiaryDate = await getLatestDiaryDate(slotId);
+        const fileName = generateBackupFileName(latestDiaryDate);
+
+        // IndexedDB의 모든 원시 데이터를 JSON으로 변환
+        const backupData = {
+            slotId: slotId,
+            exportedAt: new Date().toISOString(),
+            indexedDBVersion: DB_VERSION,
+            data: indexedDBData
+        };
+
+        const jsonStr = JSON.stringify(backupData, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `save_game_${slotId}.json`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -746,6 +821,14 @@ async function exportSlotAsFile(slotId) {
 
         if (window.DebugLogger) {
             window.DebugLogger.logFunctionExit('exportSlotAsFile', null, startTime);
+            window.DebugLogger.info('백업 데이터 내보내기 완료', {
+                slotId,
+                gameInfo: !!indexedDBData.gameInfo,
+                weeklyLogsCount: indexedDBData.weeklyLogs.length,
+                dailyLogsCount: indexedDBData.dailyLogs.length,
+                monthlyChaptersCount: indexedDBData.monthlyChapters.length,
+                prologue: !!indexedDBData.prologue
+            });
         }
     } catch (error) {
         if (window.DebugLogger) {
@@ -758,7 +841,123 @@ async function exportSlotAsFile(slotId) {
 }
 
 /**
- * 파일에서 슬롯 가져오기 (기존 StorageModule API 호환)
+ * IndexedDB 원시 데이터를 직접 저장소에 복원
+ * @param {Object} indexedDBData - IndexedDB 원시 데이터
+ * @param {string} targetSlotId - 대상 슬롯 ID (없으면 새로 생성)
+ */
+async function restoreIndexedDBData(indexedDBData, targetSlotId = null) {
+    if (!db || !db.isOpen()) {
+        await initDexieDB();
+    }
+
+    try {
+        const slotId = targetSlotId || `slot_${Date.now()}`;
+
+        // gameInfo 저장
+        if (indexedDBData.gameInfo) {
+            const gameInfoData = {
+                ...indexedDBData.gameInfo,
+                id: slotId
+            };
+            await db.gameInfo.put(gameInfoData);
+        }
+
+        // weeklyLogs 저장
+        if (indexedDBData.weeklyLogs && indexedDBData.weeklyLogs.length > 0) {
+            const weeklyRecords = indexedDBData.weeklyLogs.map(record => ({
+                ...record,
+                slotId: slotId
+            }));
+            // 기존 데이터 삭제 후 저장
+            const existingWeeks = await db.weeklyLogs.where('slotId').equals(slotId).toArray();
+            if (existingWeeks.length > 0) {
+                await db.weeklyLogs.bulkDelete(existingWeeks.map(w => w.week_number));
+            }
+            await db.weeklyLogs.bulkPut(weeklyRecords);
+        }
+
+        // dailyLogs 저장
+        if (indexedDBData.dailyLogs && indexedDBData.dailyLogs.length > 0) {
+            const dailyRecords = indexedDBData.dailyLogs.map(record => ({
+                ...record,
+                slotId: slotId
+            }));
+            // 기존 데이터 삭제 후 저장
+            const existingDailies = await db.dailyLogs.where('slotId').equals(slotId).toArray();
+            if (existingDailies.length > 0) {
+                await db.dailyLogs.bulkDelete(existingDailies.map(d => d.diary_write_date));
+            }
+            await db.dailyLogs.bulkPut(dailyRecords);
+        }
+
+        // monthlyChapters 저장
+        if (indexedDBData.monthlyChapters && indexedDBData.monthlyChapters.length > 0) {
+            const chapters = indexedDBData.monthlyChapters.map(chapter => ({
+                ...chapter,
+                slotId: slotId
+            }));
+            // 기존 데이터 삭제 후 저장
+            const existingChapters = await db.monthlyChapters.where('slotId').equals(slotId).toArray();
+            if (existingChapters.length > 0) {
+                await db.monthlyChapters.bulkDelete(existingChapters.map(c => c.month));
+            }
+            await db.monthlyChapters.bulkPut(chapters);
+        }
+
+        // prologue 저장
+        if (indexedDBData.prologue) {
+            const prologueData = {
+                ...indexedDBData.prologue,
+                id: `${slotId}_prologue`,
+                slotId: slotId
+            };
+            await db.prologue.put(prologueData);
+        }
+
+        // 슬롯 목록에 추가/업데이트
+        const slotsList = JSON.parse(localStorage.getItem('CalendarAIGameDB_slots') || '[]');
+        const existingIndex = slotsList.findIndex(s => s.slotId === slotId);
+        
+        const slotMeta = {
+            slotId: slotId,
+            campaignYear: indexedDBData.gameInfo?.save_file_info?.campaign_year || 1925,
+            playerName: indexedDBData.gameInfo?.save_file_info?.player_name || 'John Miller',
+            savedAt: new Date().toISOString(),
+            createdAt: existingIndex >= 0 ? slotsList[existingIndex].createdAt : new Date().toISOString()
+        };
+
+        // 최신 일기 날짜 가져오기
+        try {
+            const latestDiaryDate = await getLatestDiaryDate(slotId);
+            if (latestDiaryDate) {
+                slotMeta.latestDiaryDate = latestDiaryDate;
+            }
+        } catch (error) {
+            if (window.DebugLogger) {
+                window.DebugLogger.warn('최신 일기 날짜 조회 실패', error);
+            }
+        }
+
+        if (existingIndex >= 0) {
+            slotsList[existingIndex] = slotMeta;
+        } else {
+            slotsList.push(slotMeta);
+        }
+        slotsList.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+        localStorage.setItem('CalendarAIGameDB_slots', JSON.stringify(slotsList));
+
+        return slotId;
+    } catch (error) {
+        if (window.DebugLogger) {
+            window.DebugLogger.error('restoreIndexedDBData 실패', error);
+        }
+        console.error('restoreIndexedDBData 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 파일에서 슬롯 가져오기 (새 백업 형식 및 기존 형식 모두 지원)
  */
 async function importSlotFromFile(file, overwrite = false, targetSlotId = null) {
     const startTime = Date.now();
@@ -768,20 +967,44 @@ async function importSlotFromFile(file, overwrite = false, targetSlotId = null) 
 
     try {
         const text = await file.text();
-        const gameData = JSON.parse(text);
+        const parsedData = JSON.parse(text);
 
-        if (targetSlotId) {
-            if (overwrite) {
-                await updateSaveSlot(targetSlotId, gameData);
-            } else {
-                throw new Error('슬롯이 이미 존재합니다.');
+        // 새 백업 형식인지 확인 (data 필드가 있고 indexedDBVersion이 있는 경우)
+        if (parsedData.data && parsedData.indexedDBVersion !== undefined) {
+            if (window.DebugLogger) {
+                window.DebugLogger.info('새 백업 형식 감지', { 
+                    slotId: parsedData.slotId,
+                    exportedAt: parsedData.exportedAt,
+                    indexedDBVersion: parsedData.indexedDBVersion
+                });
             }
-        } else {
-            await createSaveSlot(gameData);
-        }
 
-        if (window.DebugLogger) {
-            window.DebugLogger.logFunctionExit('importSlotFromFile', null, startTime);
+            // IndexedDB 원시 데이터 직접 복원
+            const slotId = await restoreIndexedDBData(parsedData.data, targetSlotId || parsedData.slotId);
+            
+            if (window.DebugLogger) {
+                window.DebugLogger.logFunctionExit('importSlotFromFile', slotId, startTime);
+            }
+            return slotId;
+        } else {
+            // 기존 형식 (게임 데이터 직접)
+            if (window.DebugLogger) {
+                window.DebugLogger.info('기존 백업 형식 감지');
+            }
+
+            if (targetSlotId) {
+                if (overwrite) {
+                    await updateSaveSlot(targetSlotId, parsedData);
+                } else {
+                    throw new Error('슬롯이 이미 존재합니다.');
+                }
+            } else {
+                await createSaveSlot(parsedData);
+            }
+
+            if (window.DebugLogger) {
+                window.DebugLogger.logFunctionExit('importSlotFromFile', null, startTime);
+            }
         }
     } catch (error) {
         if (window.DebugLogger) {

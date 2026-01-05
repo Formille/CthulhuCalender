@@ -42,6 +42,10 @@ const LandingComponent = {
                         <div id="no-slots-message" class="no-slots" style="display: none;">
                             <p>저장된 게임이 없습니다.</p>
                         </div>
+                        <div class="modal-footer" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                            <button class="btn btn-secondary" id="import-backup-btn">백업데이터 가져오기</button>
+                            <input type="file" id="backup-file-input" accept=".json" style="display: none;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -229,6 +233,7 @@ const LandingComponent = {
                     </div>
                     <div class="slot-actions">
                         <button class="btn btn-primary load-slot-btn" data-slot-id="${slot.slotId}">불러오기</button>
+                        <button class="btn btn-secondary backup-slot-btn" data-slot-id="${slot.slotId}">백업</button>
                         <button class="btn btn-danger delete-slot-btn" data-slot-id="${slot.slotId}">삭제</button>
                     </div>
                 `;
@@ -282,6 +287,16 @@ const LandingComponent = {
                 this._eventListeners.push({ element: btn, event: 'click', handler: handler });
             });
             
+            // 백업 버튼 이벤트
+            slotList.querySelectorAll('.backup-slot-btn').forEach(btn => {
+                const handler = async (e) => {
+                    const slotId = e.target.dataset.slotId;
+                    await this.backupSlot(slotId);
+                };
+                btn.addEventListener('click', handler);
+                this._eventListeners.push({ element: btn, event: 'click', handler: handler });
+            });
+            
             // 삭제 버튼 이벤트
             slotList.querySelectorAll('.delete-slot-btn').forEach(btn => {
                 const handler = async (e) => {
@@ -293,6 +308,28 @@ const LandingComponent = {
                 btn.addEventListener('click', handler);
                 this._eventListeners.push({ element: btn, event: 'click', handler: handler });
             });
+        }
+        
+        // 백업데이터 가져오기 버튼 이벤트
+        const importBackupBtn = document.getElementById('import-backup-btn');
+        const backupFileInput = document.getElementById('backup-file-input');
+        if (importBackupBtn && backupFileInput) {
+            const importHandler = () => {
+                backupFileInput.click();
+            };
+            importBackupBtn.addEventListener('click', importHandler);
+            this._eventListeners.push({ element: importBackupBtn, event: 'click', handler: importHandler });
+            
+            const fileInputHandler = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    await this.importBackupFile(file, slots);
+                    // 파일 입력 초기화
+                    e.target.value = '';
+                }
+            };
+            backupFileInput.addEventListener('change', fileInputHandler);
+            this._eventListeners.push({ element: backupFileInput, event: 'change', handler: fileInputHandler });
         }
         
         modal.style.display = 'flex';
@@ -366,6 +403,63 @@ const LandingComponent = {
             }
             console.error('슬롯 삭제 실패:', error);
             alert('게임 삭제에 실패했습니다: ' + error.message);
+        }
+    },
+
+    // 슬롯 백업 메서드
+    async backupSlot(slotId) {
+        try {
+            if (window.DebugLogger) {
+                window.DebugLogger.info('슬롯 백업 시작', { slotId });
+            }
+            
+            await window.StorageModule.exportSlotAsFile(slotId);
+            
+            if (window.DebugLogger) {
+                window.DebugLogger.info('슬롯 백업 완료', { slotId });
+            }
+            
+            alert('백업 파일이 다운로드되었습니다.');
+        } catch (error) {
+            if (window.DebugLogger) {
+                window.DebugLogger.error('슬롯 백업 실패', error);
+            }
+            console.error('슬롯 백업 실패:', error);
+            alert('백업에 실패했습니다: ' + error.message);
+        }
+    },
+
+    // 백업 파일 가져오기 메서드
+    async importBackupFile(file, slots) {
+        try {
+            if (window.DebugLogger) {
+                window.DebugLogger.info('백업 파일 가져오기 시작', { fileName: file.name });
+            }
+            
+            // 파일 확장자 확인
+            if (!file.name.endsWith('.json')) {
+                alert('JSON 파일만 가져올 수 있습니다.');
+                return;
+            }
+            
+            // 파일 읽기 및 가져오기
+            await window.StorageModule.importSlotFromFile(file, false, null);
+            
+            // 슬롯 목록 새로고침
+            const updatedSlots = await window.StorageModule.listSaveSlots();
+            this.showSlotSelectionModal(updatedSlots);
+            
+            if (window.DebugLogger) {
+                window.DebugLogger.info('백업 파일 가져오기 완료', { fileName: file.name });
+            }
+            
+            alert('백업 파일을 성공적으로 가져왔습니다.');
+        } catch (error) {
+            if (window.DebugLogger) {
+                window.DebugLogger.error('백업 파일 가져오기 실패', error);
+            }
+            console.error('백업 파일 가져오기 실패:', error);
+            alert('백업 파일 가져오기에 실패했습니다: ' + error.message);
         }
     },
 
