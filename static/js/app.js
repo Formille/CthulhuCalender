@@ -1569,6 +1569,9 @@ function updateWeekCalendarByDiceValues() {
     // 선택된 날짜 초기화
     clearSelectedDate();
     
+    // 주사위 값이 변경되면 새로운 조우를 시작하는 것으로 간주하여 이전 조우 결과 초기화
+    lastEncounterOutcome = null;
+    
     // 주간 달력의 각 날짜 셀 업데이트
     const weekGrid = document.getElementById('week-grid');
     if (!weekGrid) return;
@@ -1588,10 +1591,8 @@ function updateWeekCalendarByDiceValues() {
             return;
         }
         
-        // 모험 결과 제한이 있는 경우 건너뛰기
-        if (dayCell.classList.contains('disabled-by-outcome')) {
-            return;
-        }
+        // 모험 결과 제한 클래스 제거 (주사위 값 변경 시 새로운 조우 시작)
+        dayCell.classList.remove('disabled-by-outcome');
         
         const dateStr = dayCell.dataset.date;
         if (!dateStr) return;

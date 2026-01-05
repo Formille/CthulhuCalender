@@ -66,7 +66,10 @@ const PlayComponent = {
                         </div>
                     </div>
                 </div>
-                <h2>모험 진행</h2>
+                <div style="display: flex; align-items: flex-end; gap: 10px; margin-bottom: 5px;">
+                    <h2 style="margin: 0;">모험 진행</h2>
+                    <span style="font-size: 1em; color: #888;"> 오늘의 주사위를 기록하세요.</span>
+                </div>
                 <div class="dice-controls">
                     <div class="dice-group">
                         <div class="slider-container">
@@ -105,7 +108,10 @@ const PlayComponent = {
                     </div>
                 </div>
                 <div class="calendar-week">
-                    <h2>금주의 조우 기록</h2>
+                    <div style="display: flex; align-items: flex-end; gap: 10px; margin-bottom: 5px;">
+                        <h2 style="margin: 0;">금주의 조우 기록</h2>
+                        <span style="font-size: 0.8em; color: #888;"> 주사위 결과로 해결할 조우를 선택하세요. </br> 일요일 조우는 일요일에만 가능합니다.</span>
+                    </div>
                     <div class="week-grid" id="week-grid"></div>
                 </div>
                 <button id="roll-dice-btn" class="btn btn-primary">일기장 읽기</button>
@@ -1254,6 +1260,9 @@ const PlayComponent = {
     updateWeekCalendarByDiceValues() {
         this.clearSelectedDate();
         
+        // 주사위 값이 변경되면 새로운 조우를 시작하는 것으로 간주하여 이전 조우 결과 초기화
+        lastEncounterOutcome = null;
+        
         const weekGrid = document.getElementById('week-grid');
         if (!weekGrid) return;
         
@@ -1271,9 +1280,8 @@ const PlayComponent = {
                 return;
             }
             
-            if (dayCell.classList.contains('disabled-by-outcome')) {
-                return;
-            }
+            // 모험 결과 제한 클래스 제거 (주사위 값 변경 시 새로운 조우 시작)
+            dayCell.classList.remove('disabled-by-outcome');
             
             const dateStr = dayCell.dataset.date;
             if (!dateStr) return;

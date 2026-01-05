@@ -20,6 +20,13 @@ const LandingComponent = {
                 <div class="option-card" id="load-game-card">
                     <h2>📂 불러오기</h2>
                     <p>이전에 저장한 게임을 불러옵니다.</p>
+                    <div class="notice-section" style="margin-top: 15px; padding: 10px; background-color:rgb(13, 10, 0); border-left: 4px solid #ff9800; border-radius: 4px; font-size: 0.9em; color: #aaaaaa;">
+                        <p style="margin: 0 0 8px 0; font-weight: bold; color: #666;">⚠️ 주의사항</p>
+                        <ul style="margin: 0; padding-left: 20px; color: #888;">
+                            <li style="margin-bottom: 5px;">기본적으로 진행상황은 자동으로 저장이 됩니다만, 브라우저 캐시 삭제를 하면 사라지니 주의하세요.</li>
+                            <li style="margin-bottom: 0;">백업 및 저장 기능으로 진행상황을 파일로 저장할 수 있습니다. 다른 기기로 옮겨서 계속 진행할 수 있습니다.</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
