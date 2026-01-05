@@ -30,3 +30,4 @@ Thumbs.db
 # 로그
 *.log
 
+diary_until_*.json
