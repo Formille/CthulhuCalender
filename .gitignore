@@ -31,3 +31,5 @@ Thumbs.db
 *.log
 
 diary_until_*.json
+INDEXEDDB_STRUCTURE.md
+plan.md
